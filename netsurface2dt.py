@@ -154,8 +154,8 @@ class NetSurf2dt:
                         try:
                             self.g.add_edge(self.nid(t,i,k), self.nid(t2,i,k2), self.INF, 0)
                         except:
-                            print t, i, k, self.nid(t,i,k), len(self.nodes)
-                            print t2, i, k2, self.nid(t2,i,k2), len(self.nodes)
+                            print (t, i, k, self.nid(t,i,k), len(self.nodes))
+                            print (t2, i, k2, self.nid(t2,i,k2), len(self.nodes))
                             raise
                     
     def nid( self, t, i, k ):
