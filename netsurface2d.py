@@ -88,7 +88,7 @@ class NetSurf2d:
             for k in range(self.K):
                 start = int(k * float(num_pixels)/self.K)
                 end = max( start+1, start + num_pixels/self.K )
-                self.w[i,k] = -1 * self.compute_weight_at(coords[start:end])
+                self.w[i,k] = -1 * self.compute_weight_at(coords[int(start):int(end)])
 
         for i in range(self.num_columns):
             self.w_tilde[i,0] = self.w[i,0] 
