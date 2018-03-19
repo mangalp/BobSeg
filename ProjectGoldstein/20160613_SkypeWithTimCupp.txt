@@ -1,0 +1,16 @@
+Skype with Tim Cupp - 20160613
+==============================
+
+He'll send:
+-----------
+[√] Paper that claims volume change in surrounding cells
+[√] A confocal dataset he has with him.
+[X] Later on he will send more datasets + explanations
+[!] He can potentially send worms for us to shove into the Bessel Lattice
+
+They are interested in:
+-----------------------
+[√] Cell volume of E-cells and surrounding cells.
+[√] Actin and Myosin particle tracking, PIV and flow quantification
+	[√] Measuring 'slippage' -- the amount of myesin flow that comes without apical constriction
+	[√] zyxin -- candidate protein essential for the constriction 'clutch'

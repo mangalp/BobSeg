@@ -1,0 +1,19 @@
+"NDInfoFile", Version 2.0
+"Description", 
+"StartTime1", 20160928 11:53:47
+"DoTimelapse", TRUE
+"NTimePoints", 101
+"DoStage", FALSE
+"DoWave", TRUE
+"NWavelengths", 3
+"WaveName1", "SD DIC"
+"WaveDoZ1", FALSE
+"WaveName2", "SD GFP"
+"WaveDoZ2", TRUE
+"WaveName3", "SD mCherry"
+"WaveDoZ3", TRUE
+"WavePointsCollected", 1, 1, 101
+"DoZSeries", FALSE
+"WaveInFileName", TRUE
+"NEvents", 0
+"EndFile"

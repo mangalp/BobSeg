@@ -1,0 +1,21 @@
+"NDInfoFile", Version 2.0
+"Description", 
+"StartTime1", 20160922 17:29:08
+"DoTimelapse", TRUE
+"NTimePoints", 21
+"DoStage", TRUE
+"NStagePositions", 2
+"Stage1", "Position208"
+"Stage2", "Position209"
+"DoWave", TRUE
+"NWavelengths", 2
+"WaveName1", "SD DIC"
+"WaveDoZ1", FALSE
+"WaveName2", "SD mCherry"
+"WaveDoZ2", TRUE
+"DoZSeries", TRUE
+"NZSteps", 19
+"ZStepSize", 1
+"WaveInFileName", TRUE
+"NEvents", 0
+"EndFile"
