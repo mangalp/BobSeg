@@ -124,6 +124,9 @@ class MovieMaker2d:
         '''
         h, w = im.shape[:2]
         y, x = np.mgrid[step / 2:h:step, step / 2:w:step].reshape(2, -1)
+        print(flow.shape)
+        print(x)
+        print(x.shape)
         fx, fy = flow[y, x].T
 
         # create image and draw
