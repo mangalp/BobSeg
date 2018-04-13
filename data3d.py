@@ -1,6 +1,8 @@
-import cPickle as pickle
+#Changed somewhat
 
-import cv2
+import pickle
+
+import cv2 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,10 +26,17 @@ class Data3d:
     pixelsize=(1.,1.,1.)
     object_names = []
     object_seedpoints = {}
+    center_of_mass=[] # New one by me
     object_areas = {}
     object_min_surf_dist = {}
     object_max_surf_dist = {}
-
+    surface_coord_polygons = {}
+    surface_coord_polygons_interior1 = {}
+    surface_coord_polygons_interior_last = {}
+    interior_points1 = []
+   
+ 
+    
     netsurfs = {}
     netsurf2dt = {} # instances of NetSurf2dt
     
@@ -121,11 +130,12 @@ class Data3d:
             self.object_max_surf_dist[oid][i] = max_rs        
             self.object_seedpoints[oid][i] = self.interpolate_points(np.array(seed), 
                                                                      np.array(seed_to), 
-                                                                     float(i-frame)/(1+frame_to-frame))
+                                                                  float(i-frame)/(1+frame_to-frame))
             if not self.silent:
-                print 'Added appearance for "'+str(self.object_names[oid])+ \
+                print ('Added appearance for "'+str(self.object_names[oid])+ \
                       '" in frame', i, \
-                      'with seed coordinates', self.object_seedpoints[oid][i]
+                      'with seed coordinates', self.object_seedpoints[oid][i])
+                
             if segment_it: self.segment_frame( oid, i )
 
     def interpolate_points( self, start, end, fraction ):
@@ -143,7 +153,7 @@ class Data3d:
         try:
             self.netsurfs[oid][f] = None
         except:
-            print 'LAZY INIT NETSURFS'
+            print ('LAZY INIT NETSURFS')
             self.netsurfs[oid] = [None] * len(self.images)
         
         self.netsurfs[oid][f] = NetSurf2d(self.num_columns, K=self.K, max_delta_k=self.max_delta_k)
@@ -153,10 +163,10 @@ class Data3d:
                                                  min_radius=self.object_min_surf_dist[oid][f])
         self.object_areas[oid][f] = self.netsurfs[oid][f].get_area( self.pixelsize )
         if not self.silent:
-            print '      Optimum energy: ', optimum
+            print ('      Optimum energy: ', optimum)
             ins, outs = self.netsurfs[oid][f].get_counts()
-            print '      Nodes in/out: ', ins, outs
-            print '      Area: ', self.object_areas[oid][f]
+            print ('      Nodes in/out: ', ins, outs)
+            print ('      Area: ', self.object_areas[oid][f])
             
     def segment2dt( self, oid, max_radial_delta=2 ):
         '''
@@ -171,12 +181,21 @@ class Data3d:
                                            self.object_seedpoints[oid], 
                                            self.object_max_surf_dist[oid][0], # note: frame 0 currently rules them all
                                            min_radius=self.object_min_surf_dist[oid][0])
+                                           
         for t in range(len(self.images)):
-            self.object_areas[oid][t] = self.netsurf2dt[oid].get_area( t, self.pixelsize )
+            
+            self.object_areas[oid][t], self.surface_coord_polygons[t], self.surface_coord_polygons_interior1[t], self.surface_coord_polygons_interior_last[t]= self.netsurf2dt[oid].get_area( t, self.pixelsize )
+            print('Surface points:',self.surface_coord_polygons[t])
+            print('Interior points:',self.surface_coord_polygons_interior1[t])
+            self.interior_points1.append(self.surface_coord_polygons_interior1[t]) # This line will return series of points on the same contour parallel to membrane on different rays
+            
             if not self.silent:
-                print 'Results for frame %d:'%(t)
-                print '      Optimum energy: ', optimum
-                print '      Area: ', self.object_areas[oid][t]
+                print ('Results for frame %d:'%(t))
+                print ('      Optimum energy: ', optimum)
+                print ('      Area: ', self.object_areas[oid][t])
+        
+         
+        return self.surface_coord_polygons, self.surface_coord_polygons_interior1, self.surface_coord_polygons_interior_last
         
             
     # ***************************************************************************************************
@@ -185,7 +204,9 @@ class Data3d:
     
     def get_center_estimates( self, oid, frames=None, set_as_new=False ):
         """
-        Computes a better center point then the one used for segmenting object 'oid'.
+        
+        
+        s a better center point then the one used for segmenting object 'oid'.
         If 'set_as_new==True', these new center points will be set an new seed points.
         """
         assert oid>=0
@@ -202,12 +223,14 @@ class Data3d:
                 better_centers[f] = np.array(netsurf.get_surface_point(0))
                 for i in range(1,netsurf.num_columns):
                     better_centers[f] += netsurf.get_surface_point(i)
-                better_centers[f] /= netsurf.num_columns
+                better_centers[f] = better_centers[f]/netsurf.num_columns
                 if not self.silent:
-                    print '    Updated center to',better_centers[f]
+                    print ('    Updated center to',better_centers[f])
         # update seedpoints if that was desired
         if set_as_new: self.object_seedpoints[oid] = better_centers
         return better_centers
+    
+    
     
     def track( self, oid, seed_frame, target_frames, recenter_iterations=1 ):
         """
@@ -217,7 +240,7 @@ class Data3d:
         Parameters:
             oid           -  object id that should be tracked
             seed_frame    -  frame id that was previously seeded (using add_object_at)
-            target_frame  -  list of frame ids the object should be tracked at
+            target_frames  -  list of frame ids the object should be tracked at
             recenter_iterations  -  how many times should the new center be looked for iteratively?
         """
         assert oid>=0
@@ -231,7 +254,11 @@ class Data3d:
             self.segment_frame( oid, f )
             for i in range(recenter_iterations):
                 self.get_center_estimates( oid, [f], set_as_new=True )
+            
             seed = self.object_seedpoints[oid][f]
+            self.center_of_mass.append(seed)
+        return self.center_of_mass
+           
 
     # ********************************************************************************************
     # *** FLOW ***  FLOW ***  FLOW ***  FLOW ***  FLOW ***  FLOW ***  FLOW ***  FLOW ***  FLOW *** 
@@ -244,19 +271,22 @@ class Data3d:
         prvs = flowchannel[0]
         for f in range(flowchannel.shape[0]):
             nxt = flowchannel[f]
+            
             flow = cv2.calcOpticalFlowFarneback(prev=prvs,
                                                 next=nxt,
+                                                flow=None,
                                                 pyr_scale=0.5,
                                                 levels=3,
                                                 winsize=5,
                                                 iterations=15,
                                                 poly_n=5,
-                                                poly_sigma=1.5,
+                                                poly_sigma=1.5, 
                                                 flags=1)
+    
             self.flows[f] = flow
             prvs = nxt
-            print '.',
-        print ' ...done!'
+            print ('.',)
+        print (' ...done!')
         return self.flows
 
     # ***************************************************************************************
@@ -295,18 +325,22 @@ class Data3d:
     # *** NUMBER_CRUNCH *** NUMBER_CRUNCH *** NUMBER_CRUNCH *** NUMBER_CRUNCH *** NUMBER_CRUNCH *** 
     # *********************************************************************************************
     def get_result_polygone( self, oid, frame ):
+        print("frame=", frame)
         points=[]
         col_vectors = self.netsurfs[oid][frame].col_vectors
         netsurf = self.netsurfs[oid][frame]
         for i in range( len(col_vectors) ):
+            print ("N=", i)
             points.append( netsurf.get_surface_point(i) )
         return points
     
     def get_result_polygone_2dt( self, oid, frame ):
+        print("frame=", frame)
         points=[]
         col_vectors = self.netsurf2dt[oid].col_vectors
         netsurf2dt = self.netsurf2dt[oid]
         for i in range( len(col_vectors) ):
+            #print ("N=", i)
             points.append( netsurf2dt.get_surface_point(frame,i) )
         return points
     
@@ -438,10 +472,12 @@ class Data3d:
                     polygones.append( self.get_result_polygone_2dt(oid,f) )
 
             # draw polygones
+            #print(polygones)
             for polygone in polygones:
                 cv2.polylines(vis, np.array([polygone], 'int32'), 1, (128,128,128), 2)
                 cv2.polylines(vis, np.array([polygone], 'int32'), 1, (255,255,255), 1)
 
 
             segimgs[f] = vis[:,:,0]
+            
         return segimgs

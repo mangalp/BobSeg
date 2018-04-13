@@ -1,7 +1,12 @@
+#Changed somewhat
+
 import numpy as np
 import bresenham as bham
+
 import maxflow
 import math
+
+
 
 def sample_circle( n=18 ):
     '''
@@ -39,6 +44,7 @@ class NetSurf2dt:
     edges = None
     g = None
     maxval = None
+    #surface_coords = [None]*segimages.shape[0]
     
     def __init__( self, num_columns, K=30, max_delta_k_xy=4, max_delta_k_t=2 ):
         """
@@ -88,7 +94,7 @@ class NetSurf2dt:
                 for k in range(self.K):
                     start = int(k * float(num_pixels)/self.K)
                     end = max( start+1, start + num_pixels/self.K )
-                    self.w[t,i,k] = -1 * self.compute_weight_at(t,coords[start:end])
+                    self.w[t,i,k] = -1 * self.compute_weight_at(t,coords[int(start):int(end)])
 
             for i in range(self.num_columns):
                 self.w_tilde[t,i,0] = self.w[t,i,0] 
@@ -154,8 +160,8 @@ class NetSurf2dt:
                         try:
                             self.g.add_edge(self.nid(t,i,k), self.nid(t2,i,k2), self.INF, 0)
                         except:
-                            print t, i, k, self.nid(t,i,k), len(self.nodes)
-                            print t2, i, k2, self.nid(t2,i,k2), len(self.nodes)
+                            print (t, i, k, self.nid(t,i,k), len(self.nodes))
+                            print (t2, i, k2, self.nid(t2,i,k2), len(self.nodes))
                             raise
                     
     def nid( self, t, i, k ):
@@ -181,11 +187,22 @@ class NetSurf2dt:
         calibration: 3-tupel of pixel size multipliers
         """
         area = 0.
+        surface_coord = []
+        surface_coord_interior1 = []
+        surface_coord_interior_last = []
         for i in range(self.num_columns):
-            pa = self.get_surface_point( t, i )
-            pb = self.get_surface_point( t, (i+1)%self.num_columns )
+            
+   
+            pa, pa1, pa2= self.get_surface_point( t, i )
+            surface_coord.append(pa)
+            surface_coord_interior1.append(pa1)
+            surface_coord_interior_last.append(pa2)
+           
+            pb, pb1, pb2 = self.get_surface_point( t, (i+1)%self.num_columns )
             area += self.get_triangle_area( pa, pb, self.centers[t], calibration )
-        return area
+    
+        return area, surface_coord, surface_coord_interior1, surface_coord_interior_last
+    
     
     def get_triangle_area( self, pa, pb, pc, calibration ):
         # calculate the length of all sides
@@ -205,13 +222,39 @@ class NetSurf2dt:
         for k in range(self.K):
             if self.g.get_segment(self.nid(t,column_id,k)) == 1: break # leave as soon as k is first outside point
         k-=1
+        #print ("K=", k)
         x = int(self.centers[t][0] + self.col_vectors[column_id,0] * 
                 self.min_radius[0] + self.col_vectors[column_id,0] * 
                 (k-1)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) )
+        
         y = int(self.centers[t][1] + self.col_vectors[column_id,1] * 
                 self.min_radius[1] + self.col_vectors[column_id,1] * 
                 (k-1)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) )
-        return (x,y)
+        
+        x1 = int(self.centers[t][0] + self.col_vectors[column_id,0] * 
+                self.min_radius[0] + self.col_vectors[column_id,0] * 
+                (k-10)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) ) 
+        #print(x1)
+        
+        y1 = int(self.centers[t][1] + self.col_vectors[column_id,1] * 
+                self.min_radius[1] + self.col_vectors[column_id,1] * 
+                (k-10)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) )
+        
+        ##I will introduce the following for computing flow of imaginary myosin/update positions on each ray
+        
+        x_interval = int(self.centers[t][0] + self.col_vectors[column_id,0] * 
+                self.min_radius[0] + self.col_vectors[column_id,0] * 
+                (k-25)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) ) 
+        
+        y_interval = int(self.centers[t][1] + self.col_vectors[column_id,1] * 
+                self.min_radius[1] + self.col_vectors[column_id,1] * 
+                (k-25)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) ) 
+        
+        #coords_testing = bham.bresenhamline(np.array([(x1, y1)]), np.array([(x_interval, y_interval)]))
+        
+       
+       
+        return (x,y), (x1,y1), (x_interval, y_interval)
     
     def get_surface_index( self, t, column_id ):
         for k in range(self.K):

@@ -1,3 +1,5 @@
+#Changed somewhat
+
 import numpy as np
 import bresenham as bham
 import maxflow
@@ -88,7 +90,7 @@ class NetSurf2d:
             for k in range(self.K):
                 start = int(k * float(num_pixels)/self.K)
                 end = max( start+1, start + num_pixels/self.K )
-                self.w[i,k] = -1 * self.compute_weight_at(coords[start:end])
+                self.w[i,k] = -1 * self.compute_weight_at(coords[int(start):int(end)])
 
         for i in range(self.num_columns):
             self.w_tilde[i,0] = self.w[i,0] 
@@ -185,12 +187,14 @@ class NetSurf2d:
         for k in range(self.K):
             if self.g.get_segment(column_id*self.K+k) == 1: break # leave as soon as k is first outside point
         k-=1
+        #print ("K=", k)
         x = int(self.center[0] + self.col_vectors[column_id,0] * 
                 self.min_radius[0] + self.col_vectors[column_id,0] * 
                 (k-1)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) )
         y = int(self.center[1] + self.col_vectors[column_id,1] * 
                 self.min_radius[1] + self.col_vectors[column_id,1] * 
                 (k-1)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) )
+        #print(x,y)
         return (x,y)
     
     def get_surface_index( self, t, column_id ):
