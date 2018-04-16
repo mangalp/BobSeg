@@ -245,6 +245,7 @@ class Data3d:
         assert oid<len(self.object_names)
 
         seed = self.object_seedpoints[oid][seed_frame]
+        self.center_of_mass.append(seed)
         min_rs = self.object_min_surf_dist[oid][seed_frame]
         max_rs = self.object_max_surf_dist[oid][seed_frame]
         for f in target_frames:
