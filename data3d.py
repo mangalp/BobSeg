@@ -450,7 +450,7 @@ class Data3d:
             netsurf2dt = self.netsurf2dt[oid]
             for i in range( len(col_vectors) ):
                 surface.append((0,0))
-                surface[i] = netsurf2dt.get_surface_point(frame,i)
+                surface[i] = netsurf2dt.get_surface_point(frame,i)[0]
             polygon = Polygon(surface, True)
             patches.append(polygon)
             p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4, color='green')
