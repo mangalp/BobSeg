@@ -38,16 +38,26 @@ def compute_flow( flowchannel ):
     prvs = flowchannel[0]
     for f in range(flowchannel.shape[0]):
         nxt = flowchannel[f]
+#         flow = cv2.calcOpticalFlowFarneback(prev=prvs,
+#                                             next=nxt,
+#                                             flow=None,
+#                                             pyr_scale=0.5,
+#                                             levels=3,
+#                                             winsize=5,
+#                                             iterations=15,
+#                                             poly_n=5,
+#                                             poly_sigma=1.5,
+#                                             flags=1)
         flow = cv2.calcOpticalFlowFarneback(prev=prvs,
                                             next=nxt,
                                             flow=None,
-                                            pyr_scale=0.5,
-                                            levels=3,
-                                            winsize=5,
-                                            iterations=15,
-                                            poly_n=5,
-                                            poly_sigma=1.5,
-                                            flags=1)
+                                            pyr_scale=0.5, 
+                                            levels=1,
+                                            winsize=15,
+                                            iterations=2,
+                                            poly_n=5, 
+                                            poly_sigma=1.1, 
+                                            flags=0)
         flows.append(flow)
         prvs = nxt
         print ('.', end="")
@@ -61,6 +71,26 @@ def split_flow_components( flows ):
     flow_x = np.moveaxis(np.swapaxes(flows,0,3)[0],-1,0)
     flow_y = np.moveaxis(np.swapaxes(flows,0,3)[1],-1,0)
     return flow_x, flow_y
+
+def flow_sum(flow_comp, interval):
+    ''' This function computes the sum over a specified time interval 
+        of the given flow component (as returned by 'split_flow_components'). 
+        For example, if the time interval is 5, it computes the average over 
+        a window of +5 and -5 for times where this window exists. 
+        For times where one of the window isn't fully available, only the 
+        availabe sub-window is used instead.
+    '''
+    sum_flow = np.zeros_like(flow_comp)
+    
+    limit = len(flow_comp) - interval
+    for i in range(len(flow_comp)):
+        if (i < interval):
+            sum_flow[i] = np.sum(flow_comp[:i+interval+1], axis=0)
+        elif (i > limit):
+            sum_flow[i] = np.sum(flow_comp[i-interval:], axis=0)
+        else:
+            sum_flow[i] = np.sum(flow_comp[i-interval:i+interval+1], axis=0)
+    return sum_flow
 
 def flow_average(flow_comp, interval):
     ''' This function computes the average over a specified time interval 
@@ -81,6 +111,21 @@ def flow_average(flow_comp, interval):
         else:
             avg_flow[i] = np.average(flow_comp[i-interval:i+interval+1], axis=0)
     return avg_flow
+
+def flow_merge_frames(flow_comp, count):
+    ''' This function computes the average over junks of 'count' many 
+        frames and hence returns len(flow_comp)/count many merged (averaged)
+        frames.
+    '''
+    assert len(flow_comp)%count == 0
+    
+    newshape = flow_comp.shape
+    newshape = (len(flow_comp)/count, newshape[1], newshape[2])
+    merged_flow_frames = np.zeros(newshape)
+    
+    for i in range(newshape[0]):
+        merged_flow_frames[i] = np.sum(flow_comp[i*count:(i+1)*count], axis=0)
+    return merged_flow_frames
 
 def get_projected_length(a, b):
     ''' Projects one vector onto another and returns the projected length.
