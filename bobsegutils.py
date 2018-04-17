@@ -53,7 +53,7 @@ def compute_flow( flowchannel ):
                                             flow=None,
                                             pyr_scale=0.5, 
                                             levels=1,
-                                            winsize=15,
+                                            winsize=10,
                                             iterations=2,
                                             poly_n=5, 
                                             poly_sigma=1.1, 
