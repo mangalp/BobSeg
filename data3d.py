@@ -1,5 +1,3 @@
-#Changed somewhat
-
 import pickle
 
 import cv2 
@@ -31,12 +29,7 @@ class Data3d:
     object_min_surf_dist = {}
     object_max_surf_dist = {}
     surface_coord_polygons = {}
-    surface_coord_polygons_interior1 = {}
-    surface_coord_polygons_interior_last = {}
-    interior_points1 = []
-   
- 
-    
+
     netsurfs = {}
     netsurf2dt = {} # instances of NetSurf2dt
     
@@ -184,18 +177,14 @@ class Data3d:
                                            
         for t in range(len(self.images)):
             
-            self.object_areas[oid][t], self.surface_coord_polygons[t], self.surface_coord_polygons_interior1[t], self.surface_coord_polygons_interior_last[t]= self.netsurf2dt[oid].get_area( t, self.pixelsize )
-            print('Surface points:',self.surface_coord_polygons[t])
-            print('Interior points:',self.surface_coord_polygons_interior1[t])
-            self.interior_points1.append(self.surface_coord_polygons_interior1[t]) # This line will return series of points on the same contour parallel to membrane on different rays
+            self.object_areas[oid][t], self.surface_coord_polygons[t] = self.netsurf2dt[oid].get_area( t, self.pixelsize )
             
             if not self.silent:
                 print ('Results for frame %d:'%(t))
                 print ('      Optimum energy: ', optimum)
                 print ('      Area: ', self.object_areas[oid][t])
         
-         
-        return self.surface_coord_polygons, self.surface_coord_polygons_interior1, self.surface_coord_polygons_interior_last
+        return self.surface_coord_polygons
         
             
     # ***************************************************************************************************
@@ -247,6 +236,7 @@ class Data3d:
         assert oid<len(self.object_names)
 
         seed = self.object_seedpoints[oid][seed_frame]
+        self.center_of_mass.append(seed)
         min_rs = self.object_min_surf_dist[oid][seed_frame]
         max_rs = self.object_max_surf_dist[oid][seed_frame]
         for f in target_frames:
@@ -398,8 +388,11 @@ class Data3d:
     # *** VISUALIZATIONS *** VISUALIZATIONS *** VISUALIZATIONS *** VISUALIZATIONS *** VISUALIZATIONS ***
     # **************************************************************************************************
     
-    def plot_minmax( self, frame, ax ):
-        ax.imshow(self.images[frame], plt.get_cmap('gray'))
+    def plot_minmax( self, frame, ax, imagedata=None ):
+        if imagedata is None:
+            ax.imshow(self.images[frame], plt.get_cmap('gray'))
+        else:
+            ax.imshow(imagedata[frame], plt.get_cmap('gray'))
         
         for oid in range(len(self.object_names)):
             patches = [] # collects patches to be plotted
@@ -418,8 +411,11 @@ class Data3d:
             p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.3, color='yellow')
             ax.add_collection(p)
 
-    def plot_result( self, frame, ax ):
-        ax.imshow(self.images[frame], plt.get_cmap('gray'))
+    def plot_result( self, frame, ax, imagedata=None ):
+        if imagedata is None:
+            ax.imshow(self.images[frame], plt.get_cmap('gray'))
+        else:
+            ax.imshow(imagedata[frame], plt.get_cmap('gray'))
         
         for oid in range(len(self.object_names)):
             patches = [] # collects patches to be plotted
@@ -435,11 +431,15 @@ class Data3d:
                 surface[i] = netsurf.get_surface_point(i)
             polygon = Polygon(surface, True)
             patches.append(polygon)
-            p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4, color='green')
+            a = 0.2 + (float(oid)/len(self.object_names))*0.6
+            p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=a, color='green')
             ax.add_collection(p)
 
-    def plot_2dt_result( self, frame, ax ):
-        ax.imshow(self.images[frame], plt.get_cmap('gray'))
+    def plot_2dt_result( self, frame, ax, imagedata=None ):
+        if imagedata is None:
+            ax.imshow(self.images[frame], plt.get_cmap('gray'))
+        else:
+            ax.imshow(imagedata[frame], plt.get_cmap('gray'))
         
         for oid in range(len(self.object_names)):
             patches = [] # collects patches to be plotted
@@ -455,7 +455,8 @@ class Data3d:
                 surface[i] = netsurf2dt.get_surface_point(frame,i)
             polygon = Polygon(surface, True)
             patches.append(polygon)
-            p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4, color='green')
+            a = 0.2 + (float(oid)/len(self.object_names))*0.6
+            p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=a, color='green')
             ax.add_collection(p)
 
     def create_segmentation_image(self, dont_use_2dt=False):
