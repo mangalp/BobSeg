@@ -334,3 +334,49 @@ def plot_big_analysis(figsize,
         fig.tight_layout()
         figs.append(fig)
     return figs
+
+def euclid_dist(x,y):
+    '''Computes euclidean distance between two points 
+    '''
+    distance = ((y[0]-x[0])**2+(y[1]-x[1])**2)**.5
+    return distance
+
+def neighbors(curr_pos):
+    '''Finds neighbors of the point 'curr_pos' in a 8-neighborhood grid. Each point is a neighbor of itself too.
+    '''
+    neighbor = [(curr_pos[0], curr_pos[1]), (curr_pos[0]-1, curr_pos[1]), (curr_pos[0], curr_pos[1]-1), (curr_pos[0]+1, curr_pos[1]), (curr_pos[0], curr_pos[1]+1), (curr_pos[0]-1, curr_pos[1]+1), (curr_pos[0]+1, curr_pos[1]+1),(curr_pos[0]-1, curr_pos[1]-1), (curr_pos[0]+1, curr_pos[1]-1)]
+    return neighbor
+
+def pixel_pos(neighbor, neigh_flow_x, neigh_flow_y, sub_pix_pos):
+    '''Finds interpolated flows at possibly sub-pixel loactions
+    '''
+    evaluate_at = (sub_pix_pos)
+    result_x = griddata(neighbor, neigh_flow_x, evaluate_at, method = 'cubic')
+    result_y = griddata(neighbor, neigh_flow_y, evaluate_at, method = 'cubic')
+    
+    return result_x, result_y
+
+def neighbor_flow(neighbor,f, avg_flow_x, avg_flow_y):
+    '''Finds the flow at neighbors
+    '''
+    l = len(neighbor)
+    neigh_flow_x = [None]*l
+    neigh_flow_y = [None]*l
+    for i in range(l):
+        neigh_flow_x[i] = avg_flow_x[f,neighbor[i][1], neighbor[i][0]]
+        neigh_flow_y[i] = avg_flow_y[f,neighbor[i][1], neighbor[i][0]]
+    return neigh_flow_x, neigh_flow_y
+
+def update_pos(img_myo, f, avg_flow_x, avg_flow_y):
+    '''Returns updated position after interpolation
+    '''
+    grid_x = int(img_myo[0])
+    grid_y = int(img_myo[1])
+    neighbor = neighbors((grid_x,grid_y))
+    neigh_flow_x, neigh_flow_y = neighbor_flow(neighbor,f, avg_flow_x, avg_flow_y)
+    result_x, result_y = pixel_pos(neighbor, neigh_flow_x, neigh_flow_y, img_myo)
+    new_pos_x = img_myo[0]+result_x
+    new_pos_y = img_myo[1]+result_y
+    seed_img_myo=(new_pos_x, new_pos_y)
+    
+    return seed_img_myo

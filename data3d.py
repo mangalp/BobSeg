@@ -29,7 +29,7 @@ class Data3d:
     object_min_surf_dist = {}
     object_max_surf_dist = {}
     surface_coord_polygons = {}
-     
+
     netsurfs = {}
     netsurf2dt = {} # instances of NetSurf2dt
     

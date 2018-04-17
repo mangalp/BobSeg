@@ -1,3 +1,5 @@
+#Changed somewhat
+
 import numpy as np
 import bresenham as bham
 
@@ -206,6 +208,7 @@ class NetSurf2dt:
             surface_coords.append(pa)
     
         return surface_coords
+
     
     def get_triangle_area( self, pa, pb, pc, calibration ):
         # calculate the length of all sides
@@ -228,6 +231,7 @@ class NetSurf2dt:
         for k in range(self.K):
             if self.g.get_segment(self.nid(t,column_id,k)) == 1: break # leave as soon as k is first outside point
         k-=1
+
         x = int(self.centers[t][0] + 
                 self.col_vectors[column_id,0] * self.min_radius[0] * scaling_factor + 
                 self.col_vectors[column_id,0] * (k-1)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) * scaling_factor )
@@ -237,6 +241,7 @@ class NetSurf2dt:
                 self.col_vectors[column_id,1] * (k-1)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) * scaling_factor )
         
         return (x,y)
+
     
     def get_surface_index( self, t, column_id ):
         for k in range(self.K):
