@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import time
 import copy
+import math
 import numpy as np
 from skimage.filters import gaussian
 import cv2 
@@ -80,3 +81,11 @@ def flow_average(flow_comp, interval):
         else:
             avg_flow[i] = np.average(flow_comp[i-interval:i+interval+1], axis=0)
     return avg_flow
+
+def get_projected_length(a, b):
+    ''' Projects one vector onto another and returns the projected length.
+        a - the vector to project, given as (x,y)-tuple.
+        b - the vector to project onto, given as (x,y)-tuple.
+    '''
+    len_b = math.sqrt(b[0]**2+b[1]**2)
+    return (a[0]*b[0] + a[1]*b[1])/len_b
