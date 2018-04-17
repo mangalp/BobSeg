@@ -29,12 +29,7 @@ class Data3d:
     object_min_surf_dist = {}
     object_max_surf_dist = {}
     surface_coord_polygons = {}
-    surface_coord_polygons_interior1 = {}
-    surface_coord_polygons_interior_last = {}
-    interior_points1 = []
-   
- 
-    
+     
     netsurfs = {}
     netsurf2dt = {} # instances of NetSurf2dt
     
@@ -182,18 +177,14 @@ class Data3d:
                                            
         for t in range(len(self.images)):
             
-            self.object_areas[oid][t], self.surface_coord_polygons[t], self.surface_coord_polygons_interior1[t], self.surface_coord_polygons_interior_last[t]= self.netsurf2dt[oid].get_area( t, self.pixelsize )
-            print('Surface points:',self.surface_coord_polygons[t])
-            print('Interior points:',self.surface_coord_polygons_interior1[t])
-            self.interior_points1.append(self.surface_coord_polygons_interior1[t]) # This line will return series of points on the same contour parallel to membrane on different rays
+            self.object_areas[oid][t], self.surface_coord_polygons[t] = self.netsurf2dt[oid].get_area( t, self.pixelsize )
             
             if not self.silent:
                 print ('Results for frame %d:'%(t))
                 print ('      Optimum energy: ', optimum)
                 print ('      Area: ', self.object_areas[oid][t])
         
-         
-        return self.surface_coord_polygons, self.surface_coord_polygons_interior1, self.surface_coord_polygons_interior_last
+        return self.surface_coord_polygons
         
             
     # ***************************************************************************************************
@@ -461,7 +452,7 @@ class Data3d:
             netsurf2dt = self.netsurf2dt[oid]
             for i in range( len(col_vectors) ):
                 surface.append((0,0))
-                surface[i] = netsurf2dt.get_surface_point(frame,i)[0]
+                surface[i] = netsurf2dt.get_surface_point(frame,i)
             polygon = Polygon(surface, True)
             patches.append(polygon)
             a = 0.2 + (float(oid)/len(self.object_names))*0.6

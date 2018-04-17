@@ -33,7 +33,7 @@ import bresenham as bham
 def compute_flow( flowchannel ):
     '''Computes the Farnaback dense flow for the given moview
     '''
-    flows = [None] * len(flowchannel)
+    flows = []
     prvs = flowchannel[0]
     for f in range(flowchannel.shape[0]):
         nxt = flowchannel[f]
@@ -47,7 +47,7 @@ def compute_flow( flowchannel ):
                                             poly_n=5,
                                             poly_sigma=1.5,
                                             flags=1)
-        flows[f] = flow
+        flows.append(flow)
         prvs = nxt
         print ('.', end="")
     print (' ...done!')

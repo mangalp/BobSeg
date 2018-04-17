@@ -182,25 +182,30 @@ class NetSurf2dt:
     
     def get_area( self, t, calibration = (1.,1.) ):
         """
-        calibration: 3-tupel of pixel size multipliers
+        calibration: 2-tupel of pixel size multipliers
         """
         area = 0.
-        surface_coord = []
-        surface_coord_interior1 = []
-        surface_coord_interior_last = []
+        surface_coords = []
         for i in range(self.num_columns):
-            
-   
-            pa, pa1, pa2= self.get_surface_point( t, i )
-            surface_coord.append(pa)
-            surface_coord_interior1.append(pa1)
-            surface_coord_interior_last.append(pa2)
-           
-            pb, pb1, pb2 = self.get_surface_point( t, (i+1)%self.num_columns )
+            pa = self.get_surface_point( t, i )
+            pb = self.get_surface_point( t, (i+1)%self.num_columns )
+            surface_coords.append(pa)
             area += self.get_triangle_area( pa, pb, self.centers[t], calibration )
     
-        return area, surface_coord, surface_coord_interior1, surface_coord_interior_last
+        return area, surface_coords
     
+    def get_polygone_points( self, t, scaling_factor=1.0, calibration = (1.,1.) ):
+        """
+        scaling_factor: scales the polygone by the given factor, 1.0 by default. Center point stays constant.
+        calibration: 2-tupel of pixel size multipliers
+        """
+        surface_coords = []
+        center = self.centers[t]
+        for i in range(self.num_columns):
+            pa = self.get_surface_point( t, i, scaling_factor )
+            surface_coords.append(pa)
+    
+        return surface_coords
     
     def get_triangle_area( self, pa, pb, pc, calibration ):
         # calculate the length of all sides
@@ -216,43 +221,22 @@ class NetSurf2dt:
     # ###  POINT SAMPLES INSIDE THE SEGMENTED AREA  ### ### ### ### ### ### ### ###
     # #############################################################################
             
-    def get_surface_point( self, t, column_id ):
+    def get_surface_point( self, t, column_id, scaling_factor=1.0 ):
+        """
+        scaling_factor: Moves surface point out or in along column vector by this factor, default value is 1.0.
+        """
         for k in range(self.K):
             if self.g.get_segment(self.nid(t,column_id,k)) == 1: break # leave as soon as k is first outside point
         k-=1
-        #print ("K=", k)
-        x = int(self.centers[t][0] + self.col_vectors[column_id,0] * 
-                self.min_radius[0] + self.col_vectors[column_id,0] * 
-                (k-1)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) )
+        x = int(self.centers[t][0] + 
+                self.col_vectors[column_id,0] * self.min_radius[0] * scaling_factor + 
+                self.col_vectors[column_id,0] * (k-1)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) * scaling_factor )
         
-        y = int(self.centers[t][1] + self.col_vectors[column_id,1] * 
-                self.min_radius[1] + self.col_vectors[column_id,1] * 
-                (k-1)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) )
+        y = int(self.centers[t][1] + 
+                self.col_vectors[column_id,1] * self.min_radius[1] *scaling_factor + 
+                self.col_vectors[column_id,1] * (k-1)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) * scaling_factor )
         
-        x1 = int(self.centers[t][0] + self.col_vectors[column_id,0] * 
-                self.min_radius[0] + self.col_vectors[column_id,0] * 
-                (k-10)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) ) 
-        #print(x1)
-        
-        y1 = int(self.centers[t][1] + self.col_vectors[column_id,1] * 
-                self.min_radius[1] + self.col_vectors[column_id,1] * 
-                (k-10)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) )
-        
-        ##I will introduce the following for computing flow of imaginary myosin/update positions on each ray
-        
-        x_interval = int(self.centers[t][0] + self.col_vectors[column_id,0] * 
-                self.min_radius[0] + self.col_vectors[column_id,0] * 
-                (k-25)/float(self.K) * (self.max_radius[0]-self.min_radius[0]) ) 
-        
-        y_interval = int(self.centers[t][1] + self.col_vectors[column_id,1] * 
-                self.min_radius[1] + self.col_vectors[column_id,1] * 
-                (k-25)/float(self.K) * (self.max_radius[1]-self.min_radius[1]) ) 
-        
-        #coords_testing = bham.bresenhamline(np.array([(x1, y1)]), np.array([(x_interval, y_interval)]))
-        
-       
-       
-        return (x,y), (x1,y1), (x_interval, y_interval)
+        return (x,y)
     
     def get_surface_index( self, t, column_id ):
         for k in range(self.K):
