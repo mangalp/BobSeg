@@ -17,15 +17,15 @@ from netsurface2d import NetSurf2d
 from netsurface2dt import NetSurf2dt
 from data3d import Data3d
 
+from shapely import geometry
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+from descartes.patch import PolygonPatch
 
 from scipy.interpolate import griddata
 
 from scipy.stats.stats import pearsonr
 from scipy.stats.stats import kendalltau
-
-from shapely import geometry
 
 import bresenham as bham
 
@@ -53,7 +53,7 @@ def compute_flow( flowchannel ):
                                             flow=None,
                                             pyr_scale=0.5, 
                                             levels=1,
-                                            winsize=10,
+                                            winsize=10, #15?
                                             iterations=2,
                                             poly_n=5, 
                                             poly_sigma=1.1, 
@@ -134,3 +134,203 @@ def get_projected_length(a, b):
     '''
     len_b = math.sqrt(b[0]**2+b[1]**2)
     return (a[0]*b[0] + a[1]*b[1])/len_b
+
+def sanity_check_loaded_data(figsize, memchannel, flowchannel, segchannel):
+    pl.rcParams['figure.figsize'] = figsize
+    fig = plt.figure()
+    fig.suptitle('image channels and gradientimage for t=0 and t=-1', fontsize=16)
+    ax = fig.add_subplot(231)
+    ax.imshow(memchannel[0], plt.get_cmap('gray'))
+    ax = fig.add_subplot(232)
+    ax.imshow(flowchannel[0], plt.get_cmap('gray'))
+    ax = fig.add_subplot(233)
+    ax.imshow(segchannel[0], plt.get_cmap('gray'))
+    ax = fig.add_subplot(234)
+    ax.imshow(memchannel[-1], plt.get_cmap('gray'))
+    ax = fig.add_subplot(235)
+    ax.imshow(flowchannel[-1], plt.get_cmap('gray'))
+    ax = fig.add_subplot(236)
+    ax.imshow(segchannel[-1], plt.get_cmap('gray'))
+    fig.tight_layout()
+    return fig
+    
+def sanity_check_segmentation( figsize, data, memchannel, segchannel, sample_size=5 ):
+    pl.rcParams['figure.figsize'] = figsize
+    figs=[]
+    for frame in range(1,len(data.images),len(data.images)/sample_size):
+        fig = plt.figure()
+        ax = plt.subplot(131)
+        data.plot_minmax( frame, ax, memchannel )
+        ax = plt.subplot(132)
+        ax.set_title('independent')
+        data.plot_result( frame, ax, segchannel )    
+        ax = plt.subplot(133)
+        ax.set_title('2dt')
+        data.plot_2dt_result( frame, ax, segchannel )
+        fig.tight_layout()
+        figs.append(fig)
+    return figs
+        
+def sanity_check_flow(figsize, somechannel, flow_x, flow_y):
+    pl.rcParams['figure.figsize'] = figsize
+    fig = plt.figure()
+    
+    total_avg_flow_x = np.average(flow_x, axis=0)
+    total_avg_flow_y = np.average(flow_y, axis=0)
+
+    y,x = np.mgrid[0:somechannel.shape[1]:1, 0:somechannel.shape[2]:1]
+    skip = (slice(None, None, 10), slice(None, None, 10))
+
+    ax = plt.subplot(221)
+    ax.set_title('average flow')
+    ax.imshow(somechannel[len(somechannel)/2])#, plt.get_cmap('gray'))
+    ax.quiver(x[skip],y[skip],total_avg_flow_x[skip],-total_avg_flow_y[skip], color='w', scale=np.max(somechannel.shape)/8.)
+
+    ax = plt.subplot(222)
+    ax.set_title('first frame')
+    ax.imshow(somechannel[0])#, plt.get_cmap('gray'))
+    ax.quiver(x[skip],y[skip],flow_x[0][skip],-flow_y[0][skip], color='w', scale=np.max(somechannel.shape)/2.)
+
+    ax = plt.subplot(223)
+    ax.set_title('middlemost frame')
+    ax.imshow(somechannel[len(somechannel)/2])#, plt.get_cmap('gray'))
+    ax.quiver(x[skip],y[skip],flow_x[len(somechannel)/2][skip],-flow_y[len(somechannel)/2][skip], color='w', scale=np.max(somechannel.shape)/2.)
+
+    ax = plt.subplot(224)
+    ax.set_title('last frame')
+    ax.imshow(somechannel[-1])#, plt.get_cmap('gray'))
+    ax.quiver(x[skip],y[skip],flow_x[-1][skip],-flow_y[-1][skip], color='w', scale=np.max(somechannel.shape)/2.)
+
+    fig.tight_layout()
+    #fig.savefig('test.pdf',dpi=300)
+    return fig
+
+def plot_coords(ax, poly, c, style='.-', alpha=.5):
+    x, y = poly.xy
+    ax.plot(x, y, style, color=c, alpha=alpha, zorder=1)
+    
+def plot_big_analysis(figsize,
+                      objects,
+                      data,
+                      somechannel,
+                      correlation_per_frame_per_object, 
+                      slippage_per_frame_per_object, 
+                      avg_membrane_contraction_per_frame_per_object, 
+                      avg_center_flow_per_frame_per_object,
+                      membrane_polygones_per_object,
+                      membrane_movement_vectors_per_frame_per_object,
+                      projected_mem_vecs_per_frame_per_object,
+                      projected_avg_flows_per_frame_per_object,
+                      annulus_inner_polygones_per_object,
+                      annulus_middle_polygones_per_object,
+                      annulus_outer_polygones_per_object,
+                      annulus_avg_flow_vectors_per_frame_per_object,
+                      show_projected=False):
+    figs = []
+    offset = 0
+    stepsize = 2
+    column_vectors = data.netsurfs[0][0].col_vectors # they are normalized to length 1
+
+    pl.rcParams['figure.figsize'] = figsize
+    
+    fig = plt.figure()
+    ax = plt.subplot(121)
+    ax.set_title(data.object_names[0])
+    ax.set_xlabel('time')
+    ax.set_ylabel('movement / slippage')
+    ax.plot(np.zeros_like(correlation_per_frame_per_object[0]), color='lightgray')
+    # ax.plot(correlation_per_frame_per_object[0], color='gray', label='pearson r')
+    ax.plot(slippage_per_frame_per_object[0], color='gray', label='slippage')
+    ax.plot(avg_membrane_contraction_per_frame_per_object[0], color='#%02x%02x%02x'%(0,109,219), label='avg. mem')
+    ax.plot(avg_center_flow_per_frame_per_object[0], color='#%02x%02x%02x'%(219,209,0), label='avg. flow')
+    ax.legend( loc='lower right')
+    ax = plt.subplot(122)
+    ax.set_title(data.object_names[1])
+    ax.set_xlabel('time')
+    ax.set_ylabel('movement / slippage')
+    ax.plot(np.zeros_like(correlation_per_frame_per_object[1]), color='lightgray')
+    # ax.plot(correlation_per_frame_per_object[1], color='gray', label='pearson r')
+    ax.plot(slippage_per_frame_per_object[1], color='gray', label='slippage')
+    ax.plot(avg_membrane_contraction_per_frame_per_object[1], color='#%02x%02x%02x'%(0,109,219), label='avg. mem')
+    ax.plot(avg_center_flow_per_frame_per_object[1], color='#%02x%02x%02x'%(219,209,0), label='avg. flow')
+    ax.legend( loc='lower right')
+    fig.tight_layout()
+    figs.append(fig)
+
+    for t in range(0,len(somechannel)-1,1):
+        fig = plt.figure()
+        ax = plt.subplot2grid((1, 3), (0, 0), colspan=2)
+        ax2 = plt.subplot(233)
+        ax3 = plt.subplot(236)
+
+        ax.imshow(somechannel[t], plt.get_cmap('gray'))
+        ax.text(25, 25, 't=%d'%t, fontsize=14, color='w')
+
+        for obj in objects:
+            # center points
+            ax.plot(data.object_seedpoints[obj][t+1][0],data.object_seedpoints[obj][t+1][1], 'o', color='green')
+            ax.plot(data.object_seedpoints[obj][t][0],data.object_seedpoints[obj][t][1], 'o', color='#%02x%02x%02x'%(0,109,219))
+
+            # polygones (membrane and annulus)
+            poly_membrane = geometry.Polygon(membrane_polygones_per_object[obj][t])
+            poly_membrane_t2 = geometry.Polygon(membrane_polygones_per_object[obj][t+1])
+            poly_annulus = geometry.Polygon(annulus_outer_polygones_per_object[obj][t], [annulus_inner_polygones_per_object[obj][t][::-1]])
+            poly_annulus_middle = geometry.Polygon(annulus_middle_polygones_per_object[obj][t])
+
+            plot_coords( ax, poly_membrane_t2.exterior, 'green', alpha=.5 )
+            plot_coords( ax, poly_membrane.exterior, '#%02x%02x%02x'%(0,109,219) )
+
+            patch_annulus = PolygonPatch(poly_annulus, facecolor='#%02x%02x%02x'%(219,209,0), edgecolor='orange', alpha=0.0625, zorder=2)
+            ax.add_patch(patch_annulus)
+
+            # membrane quivers
+            mem_base_x = [p[0] for p in membrane_polygones_per_object[obj][t]]
+            mem_base_y = [p[1] for p in membrane_polygones_per_object[obj][t]]
+            if (show_projected):
+                mem_vec = [column_vectors[i]*projected_mem_vecs_per_frame_per_object[obj][t][i] for i in range(len(column_vectors))]
+                mem_vec_x = [v[0] for v in mem_vec]
+                mem_vec_y = [-v[1] for v in mem_vec]
+            else:
+                mem_vec_x = [v[0] for v in membrane_movement_vectors_per_frame_per_object[obj][t]]
+                mem_vec_y = [-v[1] for v in membrane_movement_vectors_per_frame_per_object[obj][t]]
+            ax.quiver(mem_base_x, 
+                      mem_base_y, 
+                      mem_vec_x, 
+                      mem_vec_y, 
+                      width=0.0022, scale=np.max(somechannel.shape)/2., color='blue')
+
+            # flow quivers
+            flow_base_x = [p[0] for p in annulus_middle_polygones_per_object[obj][t]]
+            flow_base_y = [p[1] for p in annulus_middle_polygones_per_object[obj][t]]
+            if (show_projected):
+                flow_vec = [column_vectors[i]*projected_avg_flows_per_frame_per_object[obj][t][i] for i in range(len(column_vectors))]
+                flow_vec_x = [v[0] for v in flow_vec]
+                flow_vec_y = [-v[1] for v in flow_vec]
+            else:
+                flow_vec_x = [v[0] for v in annulus_avg_flow_vectors_per_frame_per_object[obj][t]]
+                flow_vec_y = [-v[1] for v in annulus_avg_flow_vectors_per_frame_per_object[obj][t]]
+            ax.quiver(flow_base_x[offset::stepsize], 
+                      flow_base_y[offset::stepsize], 
+                      flow_vec_x[offset::stepsize], 
+                      flow_vec_y[offset::stepsize], 
+                      pivot='mid', width=0.0022, scale=np.max(somechannel.shape)/2., color='yellow')
+
+        # LINEPLOT
+        # ========
+        ax2.set_title('Pearson r=%.5f'%correlation_per_frame_per_object[0][t])
+        ax2.set_xlabel('segment')
+        ax2.set_ylabel('movement')
+        ax2.plot(np.zeros_like(projected_mem_vecs_per_frame_per_object[0][t]), color='lightgray')
+        ax2.plot(projected_mem_vecs_per_frame_per_object[0][t], color='#%02x%02x%02x'%(0,109,219))
+        ax2.plot(projected_avg_flows_per_frame_per_object[0][t], color='#%02x%02x%02x'%(219,209,0))
+
+        ax3.set_title('Pearson r=%.5f'%correlation_per_frame_per_object[1][t])
+        ax3.set_xlabel('segment')
+        ax3.set_ylabel('movement')
+        ax3.plot(np.zeros_like(projected_mem_vecs_per_frame_per_object[1][t]), color='lightgray')
+        ax3.plot(projected_mem_vecs_per_frame_per_object[1][t], color='#%02x%02x%02x'%(0,109,219))
+        ax3.plot(projected_avg_flows_per_frame_per_object[1][t], color='#%02x%02x%02x'%(219,209,0))
+
+        fig.tight_layout()
+        figs.append(fig)
+    return figs
