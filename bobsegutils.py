@@ -53,7 +53,7 @@ def compute_flow( flowchannel ):
                                             flow=None,
                                             pyr_scale=0.5, 
                                             levels=1,
-                                            winsize=10, #15?
+                                            winsize=15, #15?
                                             iterations=2,
                                             poly_n=5, 
                                             poly_sigma=1.1, 
@@ -120,7 +120,7 @@ def flow_merge_frames(flow_comp, count):
     assert len(flow_comp)%count == 0
     
     newshape = flow_comp.shape
-    newshape = (len(flow_comp)/count, newshape[1], newshape[2])
+    newshape = (int(len(flow_comp)/count), newshape[1], newshape[2])
     merged_flow_frames = np.zeros(newshape)
     
     for i in range(newshape[0]):
@@ -157,7 +157,7 @@ def sanity_check_loaded_data(figsize, memchannel, flowchannel, segchannel):
 def sanity_check_segmentation( figsize, data, memchannel, segchannel, sample_size=5 ):
     pl.rcParams['figure.figsize'] = figsize
     figs=[]
-    for frame in range(1,len(data.images),len(data.images)/sample_size):
+    for frame in range(1,len(data.images),int(len(data.images)/sample_size)):
         fig = plt.figure()
         ax = plt.subplot(131)
         data.plot_minmax( frame, ax, memchannel )
@@ -183,7 +183,7 @@ def sanity_check_flow(figsize, somechannel, flow_x, flow_y):
 
     ax = plt.subplot(221)
     ax.set_title('average flow')
-    ax.imshow(somechannel[len(somechannel)/2])#, plt.get_cmap('gray'))
+    ax.imshow(somechannel[int(len(somechannel)/2)])#, plt.get_cmap('gray'))
     ax.quiver(x[skip],y[skip],total_avg_flow_x[skip],-total_avg_flow_y[skip], color='w', scale=np.max(somechannel.shape)/8.)
 
     ax = plt.subplot(222)
@@ -193,8 +193,8 @@ def sanity_check_flow(figsize, somechannel, flow_x, flow_y):
 
     ax = plt.subplot(223)
     ax.set_title('middlemost frame')
-    ax.imshow(somechannel[len(somechannel)/2])#, plt.get_cmap('gray'))
-    ax.quiver(x[skip],y[skip],flow_x[len(somechannel)/2][skip],-flow_y[len(somechannel)/2][skip], color='w', scale=np.max(somechannel.shape)/2.)
+    ax.imshow(somechannel[int(len(somechannel)/2)])#, plt.get_cmap('gray'))
+    ax.quiver(x[skip],y[skip],flow_x[int(len(somechannel)/2)][skip],-flow_y[int(len(somechannel)/2)][skip], color='w', scale=np.max(somechannel.shape)/2.)
 
     ax = plt.subplot(224)
     ax.set_title('last frame')
