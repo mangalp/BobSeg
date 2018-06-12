@@ -48,12 +48,23 @@ def compute_flow( flowchannel ):
 #                                             poly_n=5,
 #                                             poly_sigma=1.5,
 #                                             flags=1)
+#        flow = cv2.calcOpticalFlowFarneback(prev=prvs,
+#                                           next=nxt,
+#                                            flow=None,
+#                                            pyr_scale=0.5, 
+#                                            levels=1,
+#                                           winsize=10, #15?
+#                                            iterations=2,
+#                                            poly_n=5, 
+#                                            poly_sigma=1.1, 
+#                                            flags=0)
+    
         flow = cv2.calcOpticalFlowFarneback(prev=prvs,
                                             next=nxt,
                                             flow=None,
                                             pyr_scale=0.5, 
                                             levels=1,
-                                            winsize=15, #15?
+                                            winsize=5, #15?
                                             iterations=2,
                                             poly_n=5, 
                                             poly_sigma=1.1, 
@@ -380,3 +391,28 @@ def update_pos(img_myo, f, avg_flow_x, avg_flow_y):
     seed_img_myo=(new_pos_x, new_pos_y)
     
     return seed_img_myo
+
+def subVector(vec1, vec2):
+    """Makes a vector given two points using B-A given the coordinates of two points A and B
+       Parameters: Two lists of vectors
+       Returns a list
+    """
+    return [(vec2[0] - vec1[0], vec2[1] - vec1[1]) for vec1, vec2 in zip(vec1, vec2)] 
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  
+    """
+    return vector / np.linalg.norm(vector)
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
