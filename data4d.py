@@ -3,7 +3,7 @@ import bresenham as bham
 import maxflow
 import math
 from tifffile import imread, imsave
-import cPickle as pickle
+import pickle
 
 from spimagine import volfig, volshow
 #from spimagine import EllipsoidMesh, Mesh
@@ -112,7 +112,7 @@ class Data4d:
             frame_to = frame
         if seed_to is None:
             seed_to = seed
-            
+
         assert frame >= 0
         assert frame < len(self.images)
         assert frame_to >= 0
@@ -127,9 +127,9 @@ class Data4d:
                                                                      np.array(seed_to), 
                                                                      float(i-frame)/(1+frame_to-frame))
             if not self.silent:
-                print 'Added appearance for "'+str(self.object_names[oid])+ \
+                print ('Added appearance for "'+str(self.object_names[oid])+ \
                       '" in frame', i, \
-                      'with seed coordinates', self.object_seedpoints[oid][i]
+                      'with seed coordinates', self.object_seedpoints[oid][i])
             if segment_it: self.segment_frame( oid, i )
 
     def interpolate_points( self, start, end, fraction ):
@@ -144,17 +144,17 @@ class Data4d:
             oids = range(len(self.object_names)) # all ever added
         for i,oid in enumerate(oids):
             if not self.silent:
-                print 'Working on "'+str(self.object_names[oid])+ \
-                      '" (object', i+1, 'of', len(oids),')...'
+                print ('Working on "'+str(self.object_names[oid])+ \
+                      '" (object', i+1, 'of', len(oids),')...')
             self.netsurfs[oid] = [None] * len(self.images)
             for f, visible in enumerate(self.object_visibility[oid]):
                 if visible:
                     if not self.silent:
-                        print '   Segmenting in frame '+str(f)+'...' 
+                        print ('   Segmenting in frame '+str(f)+'...' )
                     self.segment_frame( oid, f )
                     self.object_volumes[oid][f] = self.netsurfs[oid][f].get_volume( self.pixelsize )
                     if not self.silent:
-                        print '      Volume: ', self.object_volumes[oid][f]
+                        print ('      Volume: ', self.object_volumes[oid][f])
 
     def segment_frame( self, oid, f ):
         """
@@ -177,9 +177,9 @@ class Data4d:
                                                  self.object_max_surf_dist[oid][f], 
                                                  min_radii=self.object_min_surf_dist[oid][f])
         if not self.silent:
-            print '      Optimum energy: ', optimum
+            print ('      Optimum energy: ', optimum)
             ins, outs = self.netsurfs[oid][f].get_counts()
-            print '      Nodes in/out: ', ins, outs
+            print ('      Nodes in/out: ', ins, outs)
             
     # ***************************************************************************************************
     # *** TRACKING&REFINEMENT *** TRACKING&REFINEMENT *** TRACKING&REFINEMENT *** TRACKING&REFINEMENT ***
@@ -206,7 +206,7 @@ class Data4d:
                     better_centers[f] += netsurf.get_surface_point(i)
                 better_centers[f] /= netsurf.num_columns
                 if not self.silent:
-                    print '    Updated center to',better_centers[f]
+                    print( '    Updated center to',better_centers[f])
         # update seedpoints if that was desired
         if set_as_new: self.object_seedpoints[oid] = better_centers
         return better_centers
@@ -253,11 +253,11 @@ class Data4d:
             'K'                    : self.K,
             'max_delta_k'          : self.max_delta_k,
         }
-        with open(filename,'w') as f:
+        with open(filename,'wb') as f:
             pickle.dump(dictDataStorage,f)
 
     def load( self, filename, compute_netsurfs=True ):
-        with open(filename,'r') as f:
+        with open(filename,'rb') as f:
             dictDataStorage = pickle.load(f)
 
         self.silent = dictDataStorage['silent']
@@ -278,8 +278,8 @@ class Data4d:
 
     def load_sphere_sampling( self ):
         # load pickeled unit sphere sampling
-        with open('sphere_sampling.pkl','r') as f:
-            dictSphereData = pickle.load(f)
+        with open('sphere_sampling.pkl','rb') as f:
+            dictSphereData = pickle.load(f, encoding='latin1')
 
         # sampling parameters
         self.vectors = dictSphereData['points']
@@ -292,7 +292,7 @@ class Data4d:
         for i in range(len(filenames)):
             self.images[i] = imread(filenames[i])
             if not self.silent:
-                print 'Dimensions of frame', i, ': ', self.images[i].shape
+                print( 'Dimensions of frame', i, ': ', self.images[i].shape)
             
     # ***************************************************************************************************
     # *** VISUALISATION STUFF *** VISUALISATION STUFF *** VISUALISATION STUFF *** VISUALISATION STUFF ***
@@ -303,7 +303,9 @@ class Data4d:
         
         self.current_frame = f
         if self.spimagine is None:
+      
             self.spimagine = volshow(self.images[f], stackUnits = stackUnits, raise_window=raise_window, autoscale=False)
+            self.spimagine
         else:
             self.spimagine.glWidget.renderer.update_data(self.images[f])
             self.spimagine.glWidget.refresh()
