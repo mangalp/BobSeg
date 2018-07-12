@@ -1,6 +1,7 @@
 from ij import IJ
 from ij.plugin.frame import RoiManager
 from ij.gui import WaitForUserDialog, OvalRoi, GenericDialog
+from ij.measure import ResultsTable
 
 def getOptions():
     global listener, xlist, ylist, zlist, manager
@@ -17,6 +18,15 @@ def getConfirmation():
 	gd1.showDialog()
 	profileType = gd1.getNextChoice()
 	return profileType
+
+
+# configuration
+folder = "/Users/prakash/Desktop/";
+radiiList = []
+
+# reset the table at the beginning
+table = ResultsTable.getResultsTable();
+table.reset()
 
 imp = IJ.openImage("/Users/prakash/Desktop/BobSegDataAndResults/GoodData/2018-06-05_fromMark/20180604_LP823_Control-03_Coupled/MyosinStack.tif");
 
@@ -58,14 +68,30 @@ while (i< len(x)):
 	
 	if (int(profileType) is 0):
 		print("i:", i)
-		print("Hello 0 type!")
 	else:
 		j = j+1
-		print("Hello 1 type!")
+		radiiList.append(radius)
+		# write the analysed values in a table
+		table = ResultsTable.getResultsTable();
+		table.incrementCounter();
+		table.addValue("center_x", x[i]);
+		table.addValue("center_y",y[i]);
+		table.addValue("radius",radius);
+		table.show("Results");
 		
 	i = j
+
+# save the table
+table = ResultsTable.getResultsTable();
+table.show("Results");
+table.save(folder + "sampleResults.csv");
+table.reset()
 		
+print(radiiList)
+
+IJ.run("Close All", "");
 	
+
 	
 		
 
