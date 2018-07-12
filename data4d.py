@@ -204,7 +204,7 @@ class Data4d:
                 better_centers[f] = np.array(netsurf.get_surface_point(0))
                 for i in range(1,netsurf.num_columns):
                     better_centers[f] += netsurf.get_surface_point(i)
-                better_centers[f] /= netsurf.num_columns
+                better_centers[f] = better_centers[f]/netsurf.num_columns
                 if not self.silent:
                     print( '    Updated center to',better_centers[f])
         # update seedpoints if that was desired
