@@ -28,6 +28,7 @@ from scipy.stats.stats import pearsonr
 from scipy.stats.stats import kendalltau
 
 import bresenham as bham
+from pyflow import pyflow
 
 
 
@@ -36,8 +37,12 @@ def compute_flow( flowchannel ):
     '''
     flows = []
     prvs = flowchannel[0]
+    
+   
     for f in range(flowchannel.shape[0]):
         nxt = flowchannel[f]
+        
+        
 #         flow = cv2.calcOpticalFlowFarneback(prev=prvs,
 #                                             next=nxt,
 #                                             flow=None,
@@ -69,6 +74,29 @@ def compute_flow( flowchannel ):
                                             poly_n=5, 
                                             poly_sigma=1.1, 
                                             flags=0)
+      
+        flows.append(flow)
+        prvs = nxt
+        print ('.', end="")
+    print (' ...done!')
+    return flows
+
+def compute_TVLflow( flowchannel ):
+    '''Computes the DualTVL1 dense flow for the given moview
+    '''
+    flows = []
+    previous = flowchannel[0]
+    prvs = previous.astype(np.float32)
+   
+    for f in range(flowchannel.shape[0]):
+        neext = flowchannel[f]
+        nxt = neext.astype(np.float32)
+        
+        optical_flow = cv2.createOptFlow_DualTVL1()
+        
+        #optical_flow.setuseInitialFlow(True)
+        flow = optical_flow.calc(prvs, nxt, None)
+      
         flows.append(flow)
         prvs = nxt
         print ('.', end="")
@@ -416,3 +444,46 @@ def angle_between(v1, v2):
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+def compute_coarse2fineFlow(flowchannel):
+    '''Computes the Corse2Fine dense flow for the given movie
+    '''
+    flows = []
+    previous = flowchannel[0]
+    previous = previous[:, :, np.newaxis]
+    prvs = previous.astype(np.double)
+    
+    alpha = 0.012
+    ratio = 0.75
+    minWidth = 20
+    nOuterFPIterations = 7
+    nInnerFPIterations = 1
+    nSORIterations = 30
+    colType = 1  # 0 or default:RGB, 1:GRAY (but pass gray image with shape (h,w,1))
+    
+    for f in range(flowchannel.shape[0]):
+        neext = flowchannel[f]
+        neext = neext[:,:,np.newaxis]
+        nxt = neext.astype(np.double)
+        
+        # Flow Options:
+
+
+        s = time.time()
+        u, v, im2W = pyflow.coarse2fine_flow(
+        prvs, nxt, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
+        nSORIterations, colType)
+        e = time.time()
+        print('Time Taken: %.2f seconds for image of size (%d, %d, %d)' % (
+    e - s, prvs.shape[0], prvs.shape[1], prvs.shape[2]))
+        flow = np.concatenate((u[..., None], v[..., None]), axis=2)
+#         np.save('examples/outFlow.npy', flow)
+
+        flows.append(flow)
+        prvs = nxt
+        print ('.', end="")
+    print (' ...done!')
+    return flows
+
+
+    
