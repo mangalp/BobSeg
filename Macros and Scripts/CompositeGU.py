@@ -1,5 +1,6 @@
 import os
 from ij import IJ
+from array import array
 from fiji.util.gui import GenericDialogPlus
 from java.awt import Dimension
 from ij.plugin.frame import RoiManager
@@ -24,22 +25,27 @@ def getImage():
 
 
 def reset(manager):
-    global iROI, xlist, ylist
+    global iROI, xlist, ylist, zlist
     xlist = []
     ylist = []
+    zlist = []
     manager.runCommand('Reset')
     manager.runCommand('Show All with labels')
     iROI = 0
 def updateROIs(manager):
 	
-    global iROI, xlist, ylist
+    global iROI, xlist, ylist, zlist
     iROI += 1
     canv = imp.getCanvas()
     p = canv.getCursorLoc()
     z = imp.getCurrentSlice()
     roi = PointRoi(p.x , p.y )
+    xlist.append(p.x)
+    ylist.append(p.y)
+    zlist.append(z)
     imp.setRoi(roi)
     manager.addRoi(roi)
+    manager.runCommand('Add')
     manager.runCommand('Draw')
     manager.runCommand('Show All with labels')
  
@@ -73,13 +79,21 @@ def saveChoices(event):
 	dc = DirectoryChooser("Pick folder for saving ROI set")
 	folder = dc.getDirectory()
 	manager = RoiManager.getInstance()
-	manager.runCommand("Measure"); 
+	manager.runCommand('Measure') 
 	IJ.saveAs("Results",  folder + "Choices.csv");
-	sliceAt = imp.getCurrentSlice();
-	imp.setSlice(sliceAt+1)
-	IJ.run("Select All")
-	IJ.run(imp, "Add Selection...", "");
-	manager.close()
+
+	for index in range(0,iROI,1):
+		print("Here!")
+		previousSlice = zlist[index]
+		newSlice = previousSlice + 1
+		imp.setSlice(newSlice)
+		imp.setRoi(PointRoi(xlist[index],ylist[index]));
+		newRoi = imp.getRoi();
+		manager.addRoi(newRoi);
+	
+	
+#	manager.reset();
+#	manager.close()
 
 inputImage = getImage()
 imp = IJ.openImage(inputImage)
