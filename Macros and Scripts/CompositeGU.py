@@ -4,9 +4,10 @@ from array import array
 from fiji.util.gui import GenericDialogPlus
 from java.awt import Dimension
 from ij.plugin.frame import RoiManager
+from ij.measure import ResultsTable
 from ij.io import DirectoryChooser
 from java.awt.event import MouseAdapter, KeyEvent, KeyAdapter
-from ij.gui import GenericDialog, WaitForUserDialog, GenericDialog, Roi, PointRoi, Toolbar, Overlay
+from ij.gui import GenericDialog, WaitForUserDialog, GenericDialog, Roi, PointRoi, Toolbar, Overlay, OvalRoi
 from javax.swing import (BoxLayout, ImageIcon, JButton, JFrame, JPanel,
         JPasswordField, JLabel, JTextArea, JTextField, JScrollPane,
         SwingConstants, WindowConstants, Box)
@@ -25,13 +26,16 @@ def getImage():
 
 
 def reset(manager):
-    global iROI, xlist, ylist, zlist
+    global iROI, xlist, ylist, zlist, radiiList
     xlist = []
     ylist = []
     zlist = []
+    radiiList = []
     manager.runCommand('Reset')
-    manager.runCommand('Show All with labels')
+    manager.runCommand('Show All')
+#    manager.runCommand('Show All with labels')
     iROI = 0
+    
 def updateROIs(manager):
 	
     global iROI, xlist, ylist, zlist
@@ -47,16 +51,56 @@ def updateROIs(manager):
     manager.addRoi(roi)
     manager.runCommand('Add')
     manager.runCommand('Draw')
-    manager.runCommand('Show All with labels')
- 
+    manager.runCommand('Show All')
+#    manager.runCommand('Show All with labels')
+
+def updateTrackROIs(manager):
+    global iTrackROI, xTracklist, yTracklist, zTracklist
+    xTracklist = []
+    yTracklist = []
+    zTracklist = []
+    canvTrack = imp.getCanvas()
+    pTrack = canvTrack.getCursorLoc()
+    zTrack = imp.getCurrentSlice()
+    roiTrack = PointRoi(pTrack.x , pTrack.y )
+    xTracklist.append(pTrack.x)
+    yTracklist.append(pTrack.y)
+    zTracklist.append(zTrack)
+    imp.setRoi(roiTrack)
+    manager.addRoi(roiTrack)
+    manager.runCommand('Add')
+    manager.runCommand('Draw')
+    manager.runCommand('Show All')
 
 def drawCircle(event):
-	defaultRadius = 0
-	radiusText.setText(str(defaultRadius))
+	radius = int(radiusText.getText())
+	print(xTracklist[0])
+	roi = OvalRoi(xTracklist[0]-radius, yTracklist[0]-radius, radius*2, radius*2);
+	imp.setRoi(roi)
+
+def confirmCircle(event):
+	radiiList.append(int(radiusText.getText()))
+	table = ResultsTable.getResultsTable();
+	table.incrementCounter();
+	table.addValue("center_x", xTracklist[0]);
+	table.addValue("center_y", yTracklist[0]);
+	table.addValue("radius",int(radiusText.getText()));
+	table.addValue("slice", zTracklist[0]);
+	table.show("Results");
+	
 
 def moveSlice(event):
 	moveTo = int(moveText.getText())
 	imp.setSlice(moveTo)
+
+def moveToPreviousPoint(event):
+	table = ResultsTable.getResultsTable();
+	tableCounter = table.getCounter();
+	previouROI = array('i',[tableCounter-1])
+	manager.setSelectedIndexes(previousROI)
+	print(tableCounter)
+	
+	
 
 def startChoose(event):
 	manager = RoiManager.getInstance()
@@ -75,53 +119,74 @@ def startChoose(event):
 	win.getCanvas().addMouseListener(listener)
 	manager.runCommand('Measure')
 
-def saveChoices(event):
+def overlayChoices(event):
 	dc = DirectoryChooser("Pick folder for saving ROI set")
 	folder = dc.getDirectory()
 	manager = RoiManager.getInstance()
 	manager.runCommand('Measure') 
 	IJ.saveAs("Results",  folder + "Choices.csv");
+	table = ResultsTable.getResultsTable();
+	table.reset()
 
 	for index in range(0,iROI,1):
-		print("Here!")
 		previousSlice = zlist[index]
 		newSlice = previousSlice + 1
 		imp.setSlice(newSlice)
 		imp.setRoi(PointRoi(xlist[index],ylist[index]));
 		newRoi = imp.getRoi();
 		manager.addRoi(newRoi);
+#		manager.reset();
+#		manager.close()
 	
+def chooseTracked(event):
+	manager = RoiManager.getInstance()
+	if manager is None:
+	    manager = RoiManager()
+	selection = manager.getSelectedIndexes()
 	
-#	manager.reset();
-#	manager.close()
+	if(selection == array('i')):
+		selectROI = array('i',[0])
+		manager.setSelectedIndexes(selectROI)
+	else:
+		selection = manager.getSelectedIndexes()
+		setSelectionIndex = selection[0]+1
+		selectROI = array('i',[setSelectionIndex])
+		manager.setSelectedIndexes(selectROI)
+		
+	class ML(MouseAdapter):
+		def mousePressed(self, keyEvent):
+			updateTrackROIs(manager)
+	#Listeners:
+	listener = ML()
+	win = imp.getWindow()
+	win.getCanvas().addMouseListener(listener)
 
+### Main code starts here
 inputImage = getImage()
 imp = IJ.openImage(inputImage)
 IJ.setTool(Toolbar.POINT)
 imp.show()
 numberOfSlices = imp.getNSlices()
 
-frame = JFrame(inputImage,size = (500, 200))
+frame = JFrame(inputImage,size = (800, 200))
 frame.setTitle(str(inputImage))
 
 panel = JPanel()
 panel.setLayout(BoxLayout(panel, BoxLayout.Y_AXIS))
 frame.add(panel)
 ###textField 
-
 numberOfSlicesLabel = JLabel("Total Time Points:"+str(numberOfSlices))
 panel.add(numberOfSlicesLabel)
-
 ###Point picking panel
 choosePanel = JPanel()
 choosePanel.setLayout(BoxLayout(choosePanel, BoxLayout.X_AXIS))
 moveLabel = JLabel("Move to time")
 moveLabel.setBounds(60,20,40,20)
-moveText = JTextField(10)
+moveText = JTextField("1",10)
 moveText.setBounds(120,20,60,20)
 moveButton = JButton("Move", actionPerformed = moveSlice)
-startChoosingButton = JButton("Start Choosing", actionPerformed = startChoose)
-endChoosingButton = JButton("Save And Overlay", actionPerformed = saveChoices)
+startChoosingButton = JButton("Start Choosing Mysoins to Track", actionPerformed = startChoose)
+endChoosingButton = JButton("Overlay Selected And Save", actionPerformed = overlayChoices)
 choosePanel.add(Box.createVerticalGlue())
 choosePanel.add(moveLabel)
 choosePanel.add(moveText)
@@ -134,20 +199,26 @@ choosePanel.add(endChoosingButton)
 ###Radius panel
 radiusPanel = JPanel()
 radiusPanel.setLayout(BoxLayout(radiusPanel, BoxLayout.X_AXIS))
+chooseSecondButton = JButton("Choose tracked myosins", actionPerformed = chooseTracked)
 radiusLabel = JLabel("Radius (in pixels)")
 radiusLabel.setBounds(60,20,40,20)
-radiusText = JTextField(10)
+radiusText = JTextField("0",10)
 radiusText.setBounds(120,20,60,20)
-radiusUpdateButton = JButton("Draw Circle", actionPerformed = drawCircle)
+radiusUpdateButton = JButton("Draw Circle/ Update Circle", actionPerformed = drawCircle)
+radiusConfirmButton = JButton("Confirm Circle", actionPerformed = confirmCircle)
 radiusPanel.add(Box.createVerticalGlue())
+radiusPanel.add(chooseSecondButton)
+radiusPanel.add(Box.createRigidArea(Dimension(25,0)))
 radiusPanel.add(radiusLabel)
 radiusPanel.add(radiusText)
 radiusPanel.add(Box.createRigidArea(Dimension(25,0)))
 radiusPanel.add(radiusUpdateButton)
+radiusPanel.add(Box.createRigidArea(Dimension(25,0)))
+radiusPanel.add(radiusConfirmButton)
 ###Point panel
 pointPanel = JPanel()
 pointPanel.setLayout(BoxLayout(pointPanel, BoxLayout.X_AXIS))
-previousPointButton = JButton("<- Point")
+previousPointButton = JButton("<- Point", actionPerformed = moveToPreviousPoint)
 nextPointButton = JButton("Point ->")
 pointPanel.add(Box.createVerticalGlue())
 pointPanel.add(previousPointButton)
