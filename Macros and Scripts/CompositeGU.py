@@ -14,6 +14,7 @@ from javax.swing import (BoxLayout, ImageIcon, JButton, JFrame, JPanel,
 
 # create variables
 iROI = 0
+iTrackROI =0
 xlist = ylist = zlist = []
 
 def getImage():
@@ -25,18 +26,20 @@ def getImage():
 	return inputImage
 
 
-def reset(manager):
-    global iROI, xlist, ylist, zlist, radiiList
+def reset():
+    global iROI, xlist, ylist, zlist, radiiList, iTrackROI
     xlist = []
     ylist = []
     zlist = []
     radiiList = []
+    manager = RoiManager.getInstance()
     manager.runCommand('Reset')
-    manager.runCommand('Show All')
+    manager.runCommand('Show All with labels')
 #    manager.runCommand('Show All with labels')
     iROI = 0
+    iTrackROI = 0
     
-def updateROIs(manager):
+def updateROIs():
 	
     global iROI, xlist, ylist, zlist
     iROI += 1
@@ -48,13 +51,14 @@ def updateROIs(manager):
     ylist.append(p.y)
     zlist.append(z)
     imp.setRoi(roi)
+    manager = RoiManager.getInstance()
     manager.addRoi(roi)
     manager.runCommand('Add')
     manager.runCommand('Draw')
     manager.runCommand('Show All')
 #    manager.runCommand('Show All with labels')
 
-def updateTrackROIs(manager):
+def updateTrackROIs():
     global iTrackROI, xTracklist, yTracklist, zTracklist
     xTracklist = []
     yTracklist = []
@@ -67,6 +71,7 @@ def updateTrackROIs(manager):
     yTracklist.append(pTrack.y)
     zTracklist.append(zTrack)
     imp.setRoi(roiTrack)
+    manager = RoiManager.getInstance() 
     manager.addRoi(roiTrack)
     manager.runCommand('Add')
     manager.runCommand('Draw')
@@ -88,7 +93,6 @@ def confirmCircle(event):
 	table.addValue("slice", zTracklist[0]);
 	table.show("Results");
 	
-
 def moveSlice(event):
 	moveTo = int(moveText.getText())
 	imp.setSlice(moveTo)
@@ -96,23 +100,30 @@ def moveSlice(event):
 def moveToPreviousPoint(event):
 	table = ResultsTable.getResultsTable();
 	tableCounter = table.getCounter();
-	previouROI = array('i',[tableCounter-1])
+	previousROI = array('i',[tableCounter-1])
+	manager = RoiManager.getInstance()
 	manager.setSelectedIndexes(previousROI)
-	print(tableCounter)
-	
-	
 
+def moveToNextPoint(event):
+	table = ResultsTable.getResultsTable();
+	tableCounter = table.getCounter();
+	nextROI = array('i',[tableCounter])
+	print(nextROI)
+	manager = RoiManager.getInstance()
+	imp.setSlice(imp.getCurrentSlice()-1)
+	manager.selectAndMakeVisible(imp, tableCounter) 
+	
 def startChoose(event):
 	manager = RoiManager.getInstance()
 	if manager is None:
 	    manager = RoiManager()
 
 	##user defines parameter values:
-	reset(manager)
+	reset()
 
 	class ML(MouseAdapter):
 		def mousePressed(self, keyEvent):
-			updateROIs(manager)
+			updateROIs()
 	#Listeners:
 	listener = ML()
 	win = imp.getWindow()
@@ -135,32 +146,50 @@ def overlayChoices(event):
 		imp.setRoi(PointRoi(xlist[index],ylist[index]));
 		newRoi = imp.getRoi();
 		manager.addRoi(newRoi);
-#		manager.reset();
-#		manager.close()
-	
+
 def chooseTracked(event):
 	manager = RoiManager.getInstance()
-	if manager is None:
-	    manager = RoiManager()
-	selection = manager.getSelectedIndexes()
+#	selection = manager.getSelectedIndex()
+#	print(selection)
+#	if(selection == -1):
+#		selectROI = array('i',[0])
+#		manager.setSelectedIndexes(selectROI)
+#	else:
+#		selection = manager.getSelectedIndexes()
+#		setSelectionIndex = selection[0]+1
+#		selectROI = array('i',[setSelectionIndex])
+#		manager.setSelectedIndexes(selectROI)
+
 	
-	if(selection == array('i')):
-		selectROI = array('i',[0])
-		manager.setSelectedIndexes(selectROI)
-	else:
-		selection = manager.getSelectedIndexes()
-		setSelectionIndex = selection[0]+1
-		selectROI = array('i',[setSelectionIndex])
-		manager.setSelectedIndexes(selectROI)
-		
 	class ML(MouseAdapter):
 		def mousePressed(self, keyEvent):
-			updateTrackROIs(manager)
+			updateTrackROIs()
+#			updateROIs()
 	#Listeners:
 	listener = ML()
 	win = imp.getWindow()
 	win.getCanvas().addMouseListener(listener)
 
+def movePreviousTime(event):
+		imp.setSlice(imp.getCurrentSlice()-1)
+
+def moveNextTime(event):
+		imp.setSlice(imp.getCurrentSlice()+1)
+
+def saveTracks(event):
+	dc = DirectoryChooser("Pick folder for saving tracks with radii")
+	folder = dc.getDirectory()
+	table = ResultsTable.getResultsTable();
+	table.save(folder+ "savedtracks.csv");
+	table.reset()
+
+def quit(event):
+	manager = RoiManager.getInstance()
+	manager.runCommand('Close');
+	imp.close();
+	
+	
+	
 ### Main code starts here
 inputImage = getImage()
 imp = IJ.openImage(inputImage)
@@ -170,6 +199,8 @@ numberOfSlices = imp.getNSlices()
 
 frame = JFrame(inputImage,size = (800, 200))
 frame.setTitle(str(inputImage))
+#frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+
 
 panel = JPanel()
 panel.setLayout(BoxLayout(panel, BoxLayout.Y_AXIS))
@@ -216,19 +247,19 @@ radiusPanel.add(radiusUpdateButton)
 radiusPanel.add(Box.createRigidArea(Dimension(25,0)))
 radiusPanel.add(radiusConfirmButton)
 ###Point panel
-pointPanel = JPanel()
-pointPanel.setLayout(BoxLayout(pointPanel, BoxLayout.X_AXIS))
-previousPointButton = JButton("<- Point", actionPerformed = moveToPreviousPoint)
-nextPointButton = JButton("Point ->")
-pointPanel.add(Box.createVerticalGlue())
-pointPanel.add(previousPointButton)
-pointPanel.add(Box.createRigidArea(Dimension(25,0)))
-pointPanel.add(nextPointButton)
+#pointPanel = JPanel()
+#pointPanel.setLayout(BoxLayout(pointPanel, BoxLayout.X_AXIS))
+#previousPointButton = JButton("<- Previous Selected Myosin", actionPerformed = moveToPreviousPoint)
+#nextPointButton = JButton("Next Selected Myosin ->", actionPerformed = moveToNextPoint)
+#pointPanel.add(Box.createVerticalGlue())
+#pointPanel.add(previousPointButton)
+#pointPanel.add(Box.createRigidArea(Dimension(25,0)))
+#pointPanel.add(nextPointButton)
 ###Slice panel
 slicePanel = JPanel()
 slicePanel.setLayout(BoxLayout(slicePanel, BoxLayout.X_AXIS))
-previousSliceButton = JButton("<- Time")
-nextSliceButton = JButton("Time -> ")
+previousSliceButton = JButton("<- Time", actionPerformed = movePreviousTime)
+nextSliceButton = JButton("Time -> ", actionPerformed = moveNextTime)
 slicePanel.add(Box.createVerticalGlue())
 slicePanel.add(previousSliceButton)
 slicePanel.add(Box.createRigidArea(Dimension(25,0)))
@@ -236,8 +267,9 @@ slicePanel.add(nextSliceButton)
 ###Save & Quit panel
 saveAndQuitPanel = JPanel()
 saveAndQuitPanel.setLayout(BoxLayout(saveAndQuitPanel, BoxLayout.X_AXIS))
-saveButton = JButton("Save")
-quitButton = JButton("Quit ")
+saveButton = JButton("Save", actionPerformed = saveTracks)
+quitButton = JButton("Quit ", actionPerformed = quit)
+#quitButton = JButton("Quit ")
 saveAndQuitPanel.add(Box.createVerticalGlue())
 saveAndQuitPanel.add(saveButton)
 saveAndQuitPanel.add(Box.createRigidArea(Dimension(25,0)))
@@ -245,7 +277,7 @@ saveAndQuitPanel.add(quitButton)
 
 panel.add(choosePanel)
 panel.add(radiusPanel)
-panel.add(pointPanel)
+#panel.add(pointPanel)
 panel.add(slicePanel)
 panel.add(saveAndQuitPanel)
 
