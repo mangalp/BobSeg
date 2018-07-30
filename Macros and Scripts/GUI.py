@@ -1,5 +1,5 @@
 import os
-from ij import IJ
+from ij import IJ, WindowManager
 from array import array
 from fiji.util.gui import GenericDialogPlus
 from java.awt import Dimension
@@ -169,9 +169,39 @@ def saveTracks(event):
 def quit(event):
 	imp.close();
 	JFrame.dispose(frame);
+
+def doSomething(imp, keyEvent):
+  """ A function to react to key being pressed on an image canvas. """
+  if(keyEvent.getKeyCode() ==77): # Move shortcut-> M
+  	moveSlice(keyEvent)
+  if(keyEvent.getKeyCode() ==10): # Start choosing myosins to track shortcut ->Enter
+  	startChoose(keyEvent)
+  if(keyEvent.getKeyCode() ==79): # Overlay selected myosins and save shortcut -> O
+  	overlayChoices(keyEvent)
+  if(keyEvent.getKeyCode() ==16): # Choose tracked myosins shortcut -> Shift
+  	chooseTracked(keyEvent)
+  if(keyEvent.getKeyCode() ==68): # Draw circle shortcut -> D
+  	drawCircle(keyEvent)
+  if(keyEvent.getKeyCode() ==67): # Confirm circle shortcut -> C
+  	confirmCircle(keyEvent)
+  if(keyEvent.getKeyCode() ==76): # Next myosin shortcut -> L
+  	moveToNextPoint(keyEvent)
+  if(keyEvent.getKeyCode() ==75): # Previous myosin shortcut -> K
+  	moveToPreviousPoint(keyEvent)
+  if(keyEvent.getKeyCode() ==44): # Next time -> >
+  	movePreviousTime(keyEvent)
+  if(keyEvent.getKeyCode() ==46): # Previous time -> <
+  	moveNextTime(keyEvent)
+  if(keyEvent.getKeyCode() ==83): # Save -> S
+  	saveTracks(keyEvent)
+  if(keyEvent.getKeyCode() ==81): # Quit shortcut ->Q
+  	quit(keyEvent)
+  # Prevent further propagation of the key event:
+  keyEvent.consume()
+ 
+
 	
 ### Main code starts here
-label = ['q']
 
 inputImage = getImage()
 imp = IJ.openImage(inputImage)
@@ -264,3 +294,22 @@ panel.add(slicePanel)
 panel.add(saveAndQuitPanel)
 
 frame.visible = True;
+
+class ListenToKey(KeyAdapter):
+  def keyPressed(this, event):
+    imp = event.getSource().getImage()
+    doSomething(imp, event)
+  
+listener = ListenToKey()
+ 
+for imp in map(WindowManager.getImage, WindowManager.getIDList()):
+  win = imp.getWindow()
+  if win is None:
+    continue
+  canvas = win.getCanvas()
+  # Remove existing key listeners
+  kls = canvas.getKeyListeners()
+  map(canvas.removeKeyListener, kls)
+  # Add our key listener
+  canvas.addKeyListener(listener)
+
