@@ -10,8 +10,8 @@ from java.awt.event import MouseAdapter, KeyEvent, KeyAdapter
 from ij.gui import GenericDialog, WaitForUserDialog, GenericDialog, Roi, PointRoi, Toolbar, Overlay, OvalRoi
 from javax.swing import (BoxLayout, ImageIcon, JButton, JFrame, JPanel,
         JPasswordField, JLabel, JTextArea, JTextField, JScrollPane,
-        SwingConstants, WindowConstants, Box)
-
+        SwingConstants, WindowConstants, Box, KeyStroke)
+ 
 # create variables
 iROI = 0
 iTrackROI =0
@@ -121,6 +121,7 @@ def startChoose(event):
 	manager.runCommand('Measure')
 
 def overlayChoices(event):
+	startChoosingButton.enabled = 0
 	dc = DirectoryChooser("Pick folder for saving ROI set")
 	folder = dc.getDirectory()
 	manager = RoiManager.getInstance()
@@ -140,6 +141,7 @@ def overlayChoices(event):
 def chooseTracked(event):
 	global trackEvent 
 	trackEvent = 1
+	endChoosingButton.enabled = 0
 	manager = RoiManager.getInstance()
 	selection = manager.getSelectedIndex()
 	if(selection == -1):
@@ -165,12 +167,12 @@ def saveTracks(event):
 	table.reset()
 
 def quit(event):
-	manager = RoiManager.getInstance()
-	manager.runCommand('Close');
 	imp.close();
-	
+	JFrame.dispose(frame);
 	
 ### Main code starts here
+label = ['q']
+
 inputImage = getImage()
 imp = IJ.openImage(inputImage)
 IJ.setTool(Toolbar.POINT)
