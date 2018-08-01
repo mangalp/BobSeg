@@ -10,7 +10,9 @@ from java.awt.event import MouseAdapter, KeyEvent, KeyAdapter
 from ij.gui import GenericDialog, WaitForUserDialog, GenericDialog, Roi, PointRoi, Toolbar, Overlay, OvalRoi, Line
 from javax.swing import (BoxLayout, ImageIcon, JButton, JFrame, JPanel,
         JPasswordField, JLabel, JTextArea, JTextField, JScrollPane,
-        SwingConstants, WindowConstants, Box, KeyStroke)
+        SwingConstants, WindowConstants, Box, KeyStroke, JFileChooser)
+from javax.swing.filechooser import FileNameExtensionFilter
+import csv
  
 # create variables
 iROI = 0
@@ -180,6 +182,58 @@ def quit(event):
 	imp.close();
 	JFrame.dispose(frame);
 
+def loadMyosin(event):
+	chooseFile = JFileChooser()
+	filter = FileNameExtensionFilter("csv files", ["csv"])
+	chooseFile.addChoosableFileFilter(filter)
+	manager = RoiManager.getInstance()
+	if manager is None:
+	    manager = RoiManager()
+	xLoadList = []
+	yLoadList = []
+	zLoadList = []
+	ret = chooseFile.showDialog(loadPanel, "choose file")
+	if (ret == JFileChooser.APPROVE_OPTION):
+		file = chooseFile.getSelectedFile()
+		openFile = csv.reader(open(str(file)), delimiter = ' ')
+		next(openFile)
+		for row in openFile:
+			list = row[0].split(',')
+			xLoadList.append( float(list[1]))
+			yLoadList.append( float(list[2]))
+			zLoadList.append( int(list[3]))
+		for rows in range(0, len(xLoadList),1):
+			imp.setSlice(zLoadList[rows])	
+			manager.addRoi(PointRoi(xLoadList[rows],yLoadList[rows]))
+
+def loadSavedTracks(event):
+	chooseFile = JFileChooser()
+	filter = FileNameExtensionFilter("csv files", ["csv"])
+	chooseFile.addChoosableFileFilter(filter)
+	manager = RoiManager.getInstance()
+	if manager is None:
+	    manager = RoiManager()
+	xLoadList = []
+	yLoadList = []
+	zLoadList = []
+	radiiList = []
+	ret = chooseFile.showDialog(loadPanel, "choose file")
+	if (ret == JFileChooser.APPROVE_OPTION):
+		file = chooseFile.getSelectedFile()
+		openFile = csv.reader(open(str(file)), delimiter = ' ')
+		next(openFile)
+		for row in openFile:
+			list = row[0].split(',')
+			xLoadList.append( float(list[1]))
+			yLoadList.append( float(list[2]))
+			zLoadList.append( int(list[3]))
+			radiiList.append(int(list[4]))
+		for rows in range(0, len(xLoadList),1):
+			imp.setSlice(zLoadList[rows])	
+			manager.addRoi(PointRoi(xLoadList[rows],yLoadList[rows]))
+	
+	
+	
 def doSomething(imp, keyEvent):
   """ A function to react to key being pressed on an image canvas. """
   if(keyEvent.getKeyCode() ==77): # Move shortcut-> M
@@ -225,10 +279,8 @@ overlay = Overlay()
 #roi.setStrokeWidth(1)
 #overlay.add(roi)
 
-frame = JFrame(inputImage,size = (800, 200))
+frame = JFrame(inputImage,size = (800, 250))
 frame.setTitle(str(inputImage))
-#frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
-
 
 panel = JPanel()
 panel.setLayout(BoxLayout(panel, BoxLayout.Y_AXIS))
@@ -236,6 +288,15 @@ frame.add(panel)
 ###textField 
 numberOfSlicesLabel = JLabel("Total Time Points:"+str(numberOfSlices))
 panel.add(numberOfSlicesLabel)
+###Read already saved points from csv file
+loadPanel = JPanel()
+loadPanel.setLayout(BoxLayout(loadPanel, BoxLayout.X_AXIS))
+loadMyosinButton = JButton("Load Myosin Coordinates from csv", actionPerformed = loadMyosin)
+loadTracksButton = JButton("Load Saved Track Coordinates from csv", actionPerformed = loadSavedTracks)
+loadPanel.add(Box.createVerticalGlue())
+loadPanel.add(loadMyosinButton)
+loadPanel.add(Box.createRigidArea(Dimension(25,0)))
+loadPanel.add(loadTracksButton)
 ###Point picking panel
 choosePanel = JPanel()
 choosePanel.setLayout(BoxLayout(choosePanel, BoxLayout.X_AXIS))
@@ -303,6 +364,7 @@ saveAndQuitPanel.add(saveButton)
 saveAndQuitPanel.add(Box.createRigidArea(Dimension(25,0)))
 saveAndQuitPanel.add(quitButton)
 
+panel.add(loadPanel)
 panel.add(choosePanel)
 panel.add(radiusPanel)
 panel.add(pointPanel)
