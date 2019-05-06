@@ -70,6 +70,10 @@ class Data3d:
         self.K = K
         self.max_delta_k = max_delta_k
         
+    def set_segProcessing_params( self, num_columns, K ):
+        self.num_columns = num_columns
+        self.K = K
+        
     def init_object( self, name ):
         """
         Adds an (empty) object definition to this dataset.
@@ -410,6 +414,7 @@ class Data3d:
                                     height=(max_radius[1]*2)) )
             p = PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.3, color='yellow')
             ax.add_collection(p)
+            
 
     def plot_result( self, frame, ax, imagedata=None ):
         if imagedata is None:
