@@ -21,15 +21,30 @@ from shapely import geometry
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from descartes.patch import PolygonPatch
+from typing import Tuple
 
 from scipy.interpolate import griddata
 
 from scipy.stats.stats import pearsonr
 from scipy.stats.stats import kendalltau
+from scipy.ndimage.filters import convolve as filter2
 
 import bresenham as bham
 from pyflow import pyflow
 
+
+
+HSKERN = np.array([[1/12, 1/6, 1/12],
+                   [1/6,    0, 1/6],
+                   [1/12, 1/6, 1/12]], float)
+
+kernelX = np.array([[-1, 1],
+                    [-1, 1]]) * .25  # kernel for computing d/dx
+
+kernelY = np.array([[-1, -1],
+                    [1, 1]]) * .25  # kernel for computing d/dy
+
+kernelT = np.ones((2, 2))*.25
 
 
 def compute_flow( flowchannel ):
@@ -484,6 +499,75 @@ def compute_coarse2fineFlow(flowchannel):
         print ('.', end="")
     print (' ...done!')
     return flows
+
+def computeDerivatives(im1: np.ndarray, im2: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+
+    fx = filter2(im1, kernelX) + filter2(im2, kernelX)
+    fy = filter2(im1, kernelY) + filter2(im2, kernelY)
+
+    # ft = im2 - im1
+    ft = filter2(im1, kernelT) + filter2(im2, -kernelT)
+
+    return fx, fy, ft
+
+def HornSchunck(im1: np.ndarray, im2: np.ndarray, alpha: float=0.0001, Niter: int=8,
+                verbose: bool=False) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    im1: image at t=0
+    im2: image at t=1
+    alpha: regularization constant
+    Niter: number of iteration
+    """
+    im1 = im1.astype(np.float32)
+    im2 = im2.astype(np.float32)
+
+    # set up initial velocities
+    uInitial = np.zeros([im1.shape[0], im1.shape[1]])
+    vInitial = np.zeros([im1.shape[0], im1.shape[1]])
+
+    # Set initial value for the flow vectors
+    U = uInitial
+    V = vInitial
+
+    # Estimate derivatives
+    [fx, fy, ft] = computeDerivatives(im1, im2)
+
+    if verbose:
+        from .plots import plotderiv
+        plotderiv(fx, fy, ft)
+
+        # Iteration to reduce error
+    for _ in range(Niter):
+        # %% Compute local averages of the flow vectors
+        uAvg = filter2(U, HSKERN)
+        vAvg = filter2(V, HSKERN)
+# %% common part of update step
+        der = (fx*uAvg + fy*vAvg + ft) / (alpha**2 + fx**2 + fy**2)
+# %% iterative step
+        U = uAvg - fx * der
+        V = vAvg - fy * der
+
+    return U, V
+
+def compute_HornSchunckFlow(flowchannel):
+    flow_x = []
+    flow_y = []
+    prvs = flowchannel[0]
+    
+   
+    for f in range(flowchannel.shape[0]):
+        nxt = flowchannel[f]
+        u,v = HornSchunck(prvs, nxt)
+        flow_x.append(u)
+        flow_y.append(v)
+        prvs = nxt
+        print ('.', end="")
+    print (' ...done!')
+    return flow_x, flow_y
+
+    
+
+
 
 
     
