@@ -164,6 +164,7 @@ def flow_merge_frames(flow_comp, count):
     
     for i in range(newshape[0]):
         merged_flow_frames[i] = np.sum(flow_comp[i*count:(i+1)*count], axis=0)
+        
     return merged_flow_frames
 
 def get_projected_length(a, b):
