@@ -25,14 +25,19 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
         Returns coordinates of points on the columns for the queried object
     '''
     sampled_surface_coords = {}
+    common_boundary_column = {}
+
     for t in range(tot_time):
         surface_coords_per_time = []
         surface_coords_per_column = []
+        common_boundary_column_per_frame = []
+        
         for i in range(num_columns):
             from_x = int(query_centroids[obj_id][t][1] + col_vectors[i,0]*min_radius[obj_id][0])
             from_y = int(query_centroids[obj_id][t][0] + col_vectors[i,1]*min_radius[obj_id][1])
             to_x = int(query_centroids[obj_id][t][1] + col_vectors[i,0]*max_radius[obj_id][0])
             to_y = int(query_centroids[obj_id][t][0] + col_vectors[i,1]*max_radius[obj_id][1])
+         
             coords_per_column = bham.bresenhamline(np.array([[from_x, from_y]]), np.array([[to_x, to_y]]))
             num_pixels = len(coords_per_column)
             coords_per_column = coords_per_column.tolist()
@@ -46,9 +51,28 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
                 print('Empty!, please recenter the centroid of cell ',obj_id ,' at times t >=', t)
             surface_coords_per_column.append(interior_coords[-1])
             
+            if(obj_id == 0):
+                for point in (coords_per_column):
+                    if(label_images_per_frame[t][point[1]][point[0]] == queried_labels[1][t]):   
+                        common_boundary_column_per_frame.append(i)
+                        break
+                        
+                    else:
+                        continue
+                
+            if(obj_id == 1):
+                for point in (coords_per_column):
+                    if(label_images_per_frame[t][pt[1]][pt[0]] == queried_labels[0][t]):
+                        common_boundary_column_per_frame.append(i)
+                        break
+                        
+                    else:
+                        continue
+                
         sampled_surface_coords[t] = surface_coords_per_column
+        common_boundary_column[t] = common_boundary_column_per_frame
         
-    return sampled_surface_coords
+    return sampled_surface_coords, common_boundary_column
 
 def shrink_polygone(coords, center, shrinkage_factor):
     
