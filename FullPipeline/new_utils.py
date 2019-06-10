@@ -19,18 +19,20 @@ def sample_circle( n=18 ):
     return points
 
 
-def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_radius, max_radius, label_images_per_frame, queried_labels):
+def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_radius, max_radius, label_images_per_frame, queried_labels, Ea_background_border, Ep_background_border, bg_label):
     
     '''
         Returns coordinates of points on the columns for the queried object
     '''
     sampled_surface_coords = {}
     common_boundary_column = {}
-
+    background_boundary_column = {}
+   
     for t in range(tot_time):
         surface_coords_per_time = []
         surface_coords_per_column = []
         common_boundary_column_per_frame = []
+        background_boundary_column_per_frame = []
         
         for i in range(num_columns):
             from_x = int(query_centroids[obj_id][t][1] + col_vectors[i,0]*min_radius[obj_id][0])
@@ -50,8 +52,8 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
             if(interior_coords == []):
                 print('Empty!, please recenter the centroid of cell ',obj_id ,' at times t >=', t)
             surface_coords_per_column.append(interior_coords[-1])
-            
-            if(obj_id == 0):
+
+            if(obj_id == 0): #Ea
                 for point in (coords_per_column):
                     if(label_images_per_frame[t][point[1]][point[0]] == queried_labels[1][t]):   
                         common_boundary_column_per_frame.append(i)
@@ -59,8 +61,17 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
                         
                     else:
                         continue
+                        
+                if(Ea_background_border):
+                    for point in (coords_per_column):
+                        if(label_images_per_frame[t][point[1]][point[0]] == bg_label):   
+                            background_boundary_column_per_frame.append(i)
+                            break
+                        
+                        else:
+                            continue
                 
-            if(obj_id == 1):
+            if(obj_id == 1): #Ep
                 for point in (coords_per_column):
                     if(label_images_per_frame[t][pt[1]][pt[0]] == queried_labels[0][t]):
                         common_boundary_column_per_frame.append(i)
@@ -68,11 +79,22 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
                         
                     else:
                         continue
+                        
+                if(Ep_background_border):
+                    for point in (coords_per_column):
+                        if(label_images_per_frame[t][point[1]][point[0]] == bg_label):   
+                            background_boundary_column_per_frame.append(i)
+                            break
+                        
+                        else:
+                            continue        
                 
         sampled_surface_coords[t] = surface_coords_per_column
         common_boundary_column[t] = common_boundary_column_per_frame
+        background_boundary_column[t] = background_boundary_column_per_frame
         
-    return sampled_surface_coords, common_boundary_column
+    return sampled_surface_coords, common_boundary_column, background_boundary_column
+
 
 def shrink_polygone(coords, center, shrinkage_factor):
     
