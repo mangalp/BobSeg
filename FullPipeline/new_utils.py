@@ -24,9 +24,9 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
     '''
         Returns coordinates of points on the columns for the queried object
     '''
-    sampled_surface_coords = {}
-    common_boundary_column = {}
-    background_boundary_column = {}
+    sampled_surface_coords = {} # stores surface coordinates (values) for desired objects at different time (keys)
+    common_boundary_column = {} # stores columns belonging to Ea-Ep boundary
+    background_boundary_column = {} # stores columns belonging to background-Ea/Ep boundary
    
     for t in range(tot_time):
         surface_coords_per_time = []
@@ -54,7 +54,7 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
             surface_coords_per_column.append(interior_coords[-1])
 
             if(obj_id == 0): #Ea
-                for point in (coords_per_column):
+                for point in (coords_per_column): #For Ea, computing the columns which are shared with Ep
                     if(label_images_per_frame[t][point[1]][point[0]] == queried_labels[1][t]):   
                         common_boundary_column_per_frame.append(i)
                         break
@@ -62,7 +62,7 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
                     else:
                         continue
                         
-                if(Ea_background_border):
+                if(Ea_background_border): #For Ea, computing the columns which are shared with background
                     for point in (coords_per_column):
                         if(label_images_per_frame[t][point[1]][point[0]] == bg_label):   
                             background_boundary_column_per_frame.append(i)
@@ -71,8 +71,8 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
                         else:
                             continue
                 
-            if(obj_id == 1): #Ep
-                for point in (coords_per_column):
+            if(obj_id == 1): #Ep 
+                for point in (coords_per_column): #For Ep, computing the columns which are shared with Ea
                     if(label_images_per_frame[t][pt[1]][pt[0]] == queried_labels[0][t]):
                         common_boundary_column_per_frame.append(i)
                         break
@@ -80,7 +80,7 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
                     else:
                         continue
                         
-                if(Ep_background_border):
+                if(Ep_background_border): #For Ep, computing the columns which are shared with background
                     for point in (coords_per_column):
                         if(label_images_per_frame[t][point[1]][point[0]] == bg_label):   
                             background_boundary_column_per_frame.append(i)
