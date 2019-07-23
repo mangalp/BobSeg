@@ -1,0 +1,20 @@
+Procedure: From the GT tracklets picked by Mark, I divide it into train_set and test_set in 80/20 ratio respectively. The train set means that I compute the flow with kNN based interpolation (k =3, Otsu threshold) with train_set tracklets as manually picked tracklets along with the automatically picked tracklets. 
+Then, I use the computed flow from above and use the test_set to find out the error in the computed flows at the test_set points. The fully automatic optical flow is also evaluated at the test_set and the following metrics are calculated.
+
+1) Absolute lag in pixels
+2) Relative (percentage) lag in pixels (%)
+3) Angle mismatch
+
+The corresponding notebook to do this quantification analysis is FlowQuantification-GuiVOpticalFlowCorrected-GUI vs OF (testPoints).ipynb.
+Furthermore, this notebook also plots the histograms for the above mentioned metrics and then also saves the tracklets computed by fully automatic Optical Flow in the respective folder with the name "OF_visualization_tracklets.csv". 
+
+Results
+
+Filename, GUI median rel. lag, GUI median angle_mismatch, OF median rel. lag, OF median angle_mismatch
+max_2018001_lp823_control-03-05, -25.52175120109719, 0.17569890511634056, -36.134852381114236, 0.11437540000557117
+MAX_2018001_LP823_Control-03-02, -37.302165551238616, 0.2056090866754977, -34.69808626716886, 0.12618351317577445
+MAX_20180525_LP823_hmr-1_sax-7_RNAi_04-01, -1.9384825662624585, 0.160028680097076, -26.75649846776484, 0.09101562359537768
+MAX_20180525_LP823_hmr-1_sax-7_RNAi_05-01_e1-crop, -25.178236861029134, 0.2509226538303358,-25.786226784639638, 0.1251053792746611
+MAX_20180525_LP823_hmr-1_sax-7_RNAi_05-01_e2-crop, -25.092392518193847, 0.22646419941268706, -29.68516352789347,0.1477390291014441
+MAX_20180525_LP823_hmr-1_sax-7_RNAi_05-02_e1-crop, -46.15335223680415, 0.24718547344702343, -36.86981168954569, 0.1297464458707002
+MAX_20180525_LP823_hmr-1_sax-7_RNAi_05-02_e2-crop, -20.08475851126038, 0.24551265270520953,-31.841117198564493, 0.1198538462540307
