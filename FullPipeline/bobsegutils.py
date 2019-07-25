@@ -41,38 +41,27 @@ def compute_flow( flowchannel ):
    
     for f in range(flowchannel.shape[0]):
         nxt = flowchannel[f]
-        
-        
+    
 #         flow = cv2.calcOpticalFlowFarneback(prev=prvs,
 #                                             next=nxt,
 #                                             flow=None,
-#                                             pyr_scale=0.5,
-#                                             levels=3,
-#                                             winsize=5,
-#                                             iterations=15,
-#                                             poly_n=5,
-#                                             poly_sigma=1.5,
-#                                             flags=1)
-#        flow = cv2.calcOpticalFlowFarneback(prev=prvs,
-#                                           next=nxt,
-#                                            flow=None,
-#                                            pyr_scale=0.5, 
-#                                            levels=1,
-#                                           winsize=10, #15?
-#                                            iterations=2,
-#                                            poly_n=5, 
-#                                            poly_sigma=1.1, 
-#                                            flags=0)
-    
+#                                             pyr_scale=0.5, 
+#                                             levels=1,
+#                                             winsize=5, #15?
+#                                             iterations=2,
+#                                             poly_n=5, 
+#                                             poly_sigma=1.1, 
+#                                             flags=0)
+        
         flow = cv2.calcOpticalFlowFarneback(prev=prvs,
                                             next=nxt,
                                             flow=None,
                                             pyr_scale=0.5, 
-                                            levels=1,
-                                            winsize=5, #15?
-                                            iterations=2,
-                                            poly_n=5, 
-                                            poly_sigma=1.1, 
+                                            levels=2,
+                                            winsize=7, #15?
+                                            iterations=1,
+                                            poly_n=3, 
+                                            poly_sigma=1.4, 
                                             flags=0)
       
         flows.append(flow)
