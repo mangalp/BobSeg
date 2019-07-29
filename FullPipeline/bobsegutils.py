@@ -39,8 +39,8 @@ def compute_flow( flowchannel ):
     prvs = flowchannel[0]
     
    
-    for f in range(flowchannel.shape[0]):
-        nxt = flowchannel[f]
+    for f in range(flowchannel.shape[0]-1):
+        nxt = flowchannel[f+1]
     
 #         flow = cv2.calcOpticalFlowFarneback(prev=prvs,
 #                                             next=nxt,
