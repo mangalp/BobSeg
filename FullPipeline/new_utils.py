@@ -3,6 +3,7 @@ import bresenham as bham
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from tifffile import imsave
+import bobsegutils as bsu
 
 def sample_circle( n=18 ):
     '''
@@ -131,5 +132,10 @@ def get_annulus_bresenham_lines(inner_polygone, outer_polygone):
         annulus_bresenham_lines.append(points)
     return annulus_bresenham_lines
 
+def post_avg_flow_filter(x_comp, y_comp, one_column_vector, pixel_to_micron, delta_t):
+    effective_comp = bsu.get_projected_length([x_comp, y_comp],one_column_vector)
+    effective_comp_micron = effective_comp*pixel_to_micron
+    effective_vel = effective_comp_micron/delta_t
+    return effective_vel
 
 
