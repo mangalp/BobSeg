@@ -95,7 +95,7 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
     return sampled_surface_coords, common_boundary_column, background_boundary_column
 
 
-def shrink_polygone(coords, center, shrinkage_factor):
+def shrink_polygone_by_relative_scaling(coords, center, shrinkage_factor):
     
     ''' returns coordinates of shrunk polygone
         coords: list of tuples
@@ -113,14 +113,49 @@ def shrink_polygone(coords, center, shrinkage_factor):
     new_coords = list(new_coords)
     return new_coords
 
-def get_polygone_points( obj, frame, sampled_coords, query_centroids, scaling_factor=1.0 ):
+def shrink_polygone_by_absolute_pixels(coords, center, pixel_shrinkage):
+    
+    ''' returns coordinates of shrunk polygone
+        coords: list of tuples
+        shrinkage_factor: between 0 and 1; 1 being no shrinkage
+    '''
+    xs = [i[0] for i in coords]
+    ys = [i[1] for i in coords]
+    x_center = center[1]
+    y_center = center[0]
+    
+    new_xs = []
+    new_ys = []
+    for i in range(len(coords)):
+        xs = coords[i][0]
+        ys = coords[i][1]
+        normalized_dist = pixel_shrinkage/bsu.euclid_dist((x_center,y_center),(xs,ys)) 
+        new_xs.append(xs+normalized_dist*(x_center-xs))
+        new_ys.append(ys+normalized_dist*(y_center-ys))
+        
+    # create list of new coordinates
+    new_coords = zip(new_xs, new_ys)
+    new_coords = list(new_coords)
+    return new_coords
+
+def get_polygone_points_by_relative_scaling( obj, frame, sampled_coords, query_centroids, scaling_factor=1.0 ):
     """
     scaling_factor: scales the polygone by the given factor, 1.0 by default. 
     calibration: 2-tupel of pixel size multipliers
     """
     unscaled_surface_coords = sampled_coords[obj][frame]
     center = query_centroids[obj][frame]
-    surface_coords = shrink_polygone(unscaled_surface_coords, center, scaling_factor)
+    surface_coords = shrink_polygone_by_relative_scaling(unscaled_surface_coords, center, scaling_factor)
+    return surface_coords
+
+def get_polygone_points_by_absolute_pixel_shrink( obj, frame, sampled_coords, query_centroids, pixel_shrinkage=0.0 ):
+    """
+    scaling_factor: scales the polygone by the given factor, 1.0 by default. 
+    calibration: 2-tupel of pixel size multipliers
+    """
+    unscaled_surface_coords = sampled_coords[obj][frame]
+    center = query_centroids[obj][frame]
+    surface_coords = shrink_polygone_by_absolute_pixels(unscaled_surface_coords, center, pixel_shrinkage)
     return surface_coords
 
 def get_annulus_bresenham_lines(inner_polygone, outer_polygone):
