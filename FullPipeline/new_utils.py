@@ -28,7 +28,6 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
     sampled_surface_coords = {} # stores surface coordinates (values) for desired objects at different time (keys)
     common_boundary_column = {} # stores columns belonging to Ea-Ep boundary
     background_boundary_column = {} # stores columns belonging to background-Ea/Ep boundary
-   
     for t in range(tot_time):
         surface_coords_per_time = []
         surface_coords_per_column = []
@@ -40,7 +39,6 @@ def get_coords(obj_id, tot_time, num_columns, query_centroids, col_vectors, min_
             from_y = int(query_centroids[obj_id][t][0] + col_vectors[i,1]*min_radius[obj_id][1])
             to_x = int(query_centroids[obj_id][t][1] + col_vectors[i,0]*max_radius[obj_id][0])
             to_y = int(query_centroids[obj_id][t][0] + col_vectors[i,1]*max_radius[obj_id][1])
-         
             coords_per_column = bham.bresenhamline(np.array([[from_x, from_y]]), np.array([[to_x, to_y]]))
             num_pixels = len(coords_per_column)
             coords_per_column = coords_per_column.tolist()
